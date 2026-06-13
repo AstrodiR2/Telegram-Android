@@ -33,4 +33,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TelegramMod-debug
-          path: TMessagesProj_App/build/outputs/apk/afatDebug/*.apk
+          path: "**/build/outputs/apk/**/*.apk"
