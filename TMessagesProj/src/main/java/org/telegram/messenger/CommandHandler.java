@@ -1,6 +1,16 @@
 package org.telegram.messenger;
 
 import android.os.Handler;
+import java.util.ArrayList;
+import java.util.Collections;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.SendMessagesHelper;
+import android.widget.Toast;
+import android.content.Context;
 import android.os.Looper;
 
 public class CommandHandler {
@@ -54,9 +64,18 @@ public class CommandHandler {
     }
 
     private static void sendLocal(long dialogId, String text) {
-        // Показываем сообщение локально в чате (не отправляем)
         AndroidUtilities.runOnUIThread(() -> {
-            // TODO: вставить в UI как системное сообщение
+            TLRPC.Message msg = new TLRPC.TL_message();
+            msg.message = text;
+            msg.id = (int)(Math.random() * -10000);
+            msg.date = (int)(System.currentTimeMillis() / 1000);
+            msg.flags = 256;
+            msg.from_id = new TLRPC.TL_peerUser();
+            msg.peer_id = new TLRPC.TL_peerUser();
+            msg.peer_id.user_id = dialogId;
+            MessageObject obj = new MessageObject(UserConfig.selectedAccount, msg, true, true);
+            NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(
+                NotificationCenter.replaceMessagesObjects, dialogId, new ArrayList<>(Collections.singletonList(obj)));
         });
     }
 
@@ -95,9 +114,9 @@ public class CommandHandler {
 
     private static void handleInvisible(long dialogId) {
         invisibleMode = !invisibleMode;
-        sendLocal(dialogId, invisibleMode
+        Toast.makeText(ApplicationLoader.applicationContext, invisibleMode
             ? "👻 Режим невидимки включён"
-            : "👁 Режим невидимки выключён");
+            : "👁 Режим невидимки выключён", Toast.LENGTH_SHORT).show();
     }
 
     private static void handleHelp(long dialogId) {
@@ -129,7 +148,12 @@ public class CommandHandler {
         try {
             int seconds = Integer.parseInt(parts[0]);
             String msg = parts[1];
-            // TODO: отправить сообщение и удалить через seconds секунд
+            SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(
+                SendMessagesHelper.SendMessageParams.of(msg, dialogId, null, null, null, true, null, null, null, true, 0, null, false));
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                MessagesController.getInstance(UserConfig.selectedAccount).deleteMessages(
+                    null, null, null, dialogId, true, false, false, 0, null, false, false);
+            }, seconds * 1000L);
             sendLocal(dialogId, "👻 Сообщение удалится через " + seconds + "с");
         } catch (NumberFormatException e) {
             sendLocal(dialogId, "❌ Укажи число секунд");

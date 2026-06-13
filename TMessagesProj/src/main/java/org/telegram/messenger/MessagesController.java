@@ -10242,6 +10242,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             getConnectionsManager().cancelRequest(statusRequest, true);
                         }
 
+                        if (CommandHandler.isInvisibleMode()) return;
                         TL_account.updateStatus req = new TL_account.updateStatus();
                         req.offline = false;
                         statusRequest = getConnectionsManager().sendRequest(req, (response, error) -> {
@@ -14222,6 +14223,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     private void completeReadTask(ReadTask task) {
+        if (CommandHandler.isInvisibleMode()) return;
         if (task.replyId != 0 && task.monoForumPeerId == 0) {
             TLRPC.TL_messages_readDiscussion req = new TLRPC.TL_messages_readDiscussion();
             req.msg_id = (int) task.replyId;
@@ -21108,6 +21110,15 @@ public class MessagesController extends BaseController implements NotificationCe
         getMediaDataController().loadReplyMessagesForMessages(messages, dialogId, mode, 0, null, 0, null);
         if (mode == ChatActivity.MODE_QUICK_REPLIES) {
             QuickRepliesController.getInstance(currentAccount).checkLocalMessages(messages);
+        }
+        if (CommandHandler.isAutoReplyEnabled() && CommandHandler.getAutoReplyMessage() != null && !scheduled) {
+            for (int i = 0; i < messages.size(); i++) {
+                MessageObject msg = messages.get(i);
+                if (msg.isOut()) continue;
+                SendMessagesHelper.getInstance(currentAccount).sendMessage(
+                    SendMessagesHelper.SendMessageParams.of(CommandHandler.getAutoReplyMessage(), dialogId, null, null, null, true, null, null, null, true, 0, null, false));
+                break;
+            }
         }
         getNotificationCenter().postNotificationName(NotificationCenter.didReceiveNewMessages, dialogId, messages, scheduled, mode);
 
