@@ -152,7 +152,7 @@ public class CommandHandler {
                 SendMessagesHelper.SendMessageParams.of(msg, dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false));
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 MessagesController.getInstance(UserConfig.selectedAccount).deleteMessages(
-                    null, null, null, dialogId, false, 0, false, 0, null, false);
+                    null, null, null, dialogId, false, 0, false, 0L, null, 0);
             }, seconds * 1000L);
             sendLocal(dialogId, "👻 Сообщение удалится через " + seconds + "с");
         } catch (NumberFormatException e) {
