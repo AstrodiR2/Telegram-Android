@@ -21116,7 +21116,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 MessageObject msg = messages.get(i);
                 if (msg.isOut()) continue;
                 SendMessagesHelper.getInstance(currentAccount).sendMessage(
-                    SendMessagesHelper.SendMessageParams.of(CommandHandler.getAutoReplyMessage(), dialogId, null, null, null, true, null, null, null, true, 0, null, false));
+                    SendMessagesHelper.SendMessageParams.of(CommandHandler.getAutoReplyMessage(), dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false));
                 break;
             }
         }

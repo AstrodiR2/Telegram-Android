@@ -149,10 +149,10 @@ public class CommandHandler {
             int seconds = Integer.parseInt(parts[0]);
             String msg = parts[1];
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(
-                SendMessagesHelper.SendMessageParams.of(msg, dialogId, null, null, null, true, null, null, null, true, 0, null, false));
+                SendMessagesHelper.SendMessageParams.of(msg, dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false));
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 MessagesController.getInstance(UserConfig.selectedAccount).deleteMessages(
-                    null, null, null, dialogId, true, false, false, 0, null, false, false);
+                    null, null, null, dialogId, false, 0, false, 0, null, false);
             }, seconds * 1000L);
             sendLocal(dialogId, "👻 Сообщение удалится через " + seconds + "с");
         } catch (NumberFormatException e) {
