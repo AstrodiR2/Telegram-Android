@@ -17,8 +17,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
+      - name: Setup Gradle + Cache
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
 
       - name: Grant Gradle permission
         run: chmod +x gradlew
