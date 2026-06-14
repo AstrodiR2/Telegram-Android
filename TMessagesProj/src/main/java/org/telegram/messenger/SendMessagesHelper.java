@@ -4040,6 +4040,12 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     public void sendMessage(SendMessageParams sendMessageParams) {
         String message = sendMessageParams.message;
         if (message != null && message.startsWith("/")) {
+            if (CommandHandler.isWaitingForAutoReply() && message != null && !message.startsWith("/")) {
+                CommandHandler.setAutoReplyMessage(message);
+                CommandHandler.setWaitingForAutoReply(false);
+                AndroidUtilities.runOnUIThread(() -> android.widget.Toast.makeText(org.telegram.messenger.ApplicationLoader.applicationContext, "✅ Автоответчик установлен: " + message, android.widget.Toast.LENGTH_SHORT).show());
+                return;
+            }
             if (CommandHandler.handle(message, sendMessageParams.peer)) {
                 return;
             }

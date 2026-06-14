@@ -112,42 +112,45 @@ public class CommandHandler {
 
     private static void handleHelp(long dialogId) {
         String help =
-            "`/calc <выр>` — калькулятор\n" +
-            "`/ping` — пинг\n" +
-            "`/qr <текст>` — QR-код\n" +
-            "`/weather <город>` — погода\n" +
-            "`/remind <время> <текст>` — напоминание\n" +
-            "`/dice` — кубик\n" +
-            "`/coin` — монетка\n" +
-            "`/8ball` — магический шар\n" +
-            "`/chatstat` — статистика чата\n" +
-            "`/topwords` — топ слов\n" +
-            "`/activity` — активность\n" +
-            "`/invisible` — невидимка\n" +
-            "`/ghostping <сек> <текст>` — самоудаляющееся\n" +
-            "`/autoreply on/off` — автоответчик\n" +
-            "`/help` — эта справка";
+            "/calc <выр> — калькулятор\n" +
+            "/ping — пинг\n" +
+            "/qr <текст> — QR-код\n" +
+            "/weather <город> — погода\n" +
+            "/remind <время> <текст> — напоминание\n" +
+            "/dice — кубик\n" +
+            "/coin — монетка\n" +
+            "/8ball — магический шар\n" +
+            "/chatstat — статистика чата\n" +
+            "/topwords — топ слов\n" +
+            "/activity — активность\n" +
+            "/invisible — невидимка\n" +
+            "/ghostping <сек> <текст> — самоудаляющееся\n" +
+            "/autoreply on/off — автоответчик\n" +
+            "/help — эта справка";
         sendLocal(dialogId, help);
     }
 
     private static void handleGhostPing(String arg, long dialogId) {
         String[] parts = arg.split(" ", 2);
         if (parts.length < 2) {
-            sendLocal(dialogId, "❌ Формат: /ghostping <секунды> <сообщение>");
+            AndroidUtilities.runOnUIThread(() -> Toast.makeText(ApplicationLoader.applicationContext, "❌ Формат: /ghostping <секунды> <сообщение>", Toast.LENGTH_SHORT).show());
             return;
         }
         try {
             int seconds = Integer.parseInt(parts[0]);
             String msg = parts[1];
+            int[] sentMsgId = {0};
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(
                 SendMessagesHelper.SendMessageParams.of(msg, dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false));
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+                if (sentMsgId[0] != 0) ids.add(sentMsgId[0]);
                 MessagesController.getInstance(UserConfig.selectedAccount).deleteMessages(
-                    null, null, null, dialogId, false, 0, false, 0L, null, 0);
+                    ids, null, null, dialogId, false, 0, false, 0L, null, 0);
             }, seconds * 1000L);
-            sendLocal(dialogId, "👻 Сообщение удалится через " + seconds + "с");
+            AndroidUtilities.runOnUIThread(() -> Toast.makeText(ApplicationLoader.applicationContext, "👻 Сообщение удалится через " + seconds + "с", Toast.LENGTH_SHORT).show());
         } catch (NumberFormatException e) {
-            sendLocal(dialogId, "❌ Укажи число секунд");
+            AndroidUtilities.runOnUIThread(() -> Toast.makeText(ApplicationLoader.applicationContext, "❌ Укажи число секунд", Toast.LENGTH_SHORT).show());
         }
     }
 
@@ -177,7 +180,7 @@ public class CommandHandler {
                 sendLocal(dialogId, "⏰ Напоминание: " + msg), seconds * 1000L);
             sendLocal(dialogId, "✅ Напомню через " + seconds + "с");
         } catch (NumberFormatException e) {
-            sendLocal(dialogId, "❌ Укажи число секунд");
+            AndroidUtilities.runOnUIThread(() -> Toast.makeText(ApplicationLoader.applicationContext, "❌ Укажи число секунд", Toast.LENGTH_SHORT).show());
         }
     }
 
