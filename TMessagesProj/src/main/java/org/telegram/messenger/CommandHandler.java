@@ -65,17 +65,8 @@ public class CommandHandler {
 
     private static void sendLocal(long dialogId, String text) {
         AndroidUtilities.runOnUIThread(() -> {
-            TLRPC.Message msg = new TLRPC.TL_message();
-            msg.message = text;
-            msg.id = (int)(Math.random() * -10000);
-            msg.date = (int)(System.currentTimeMillis() / 1000);
-            msg.flags = 256;
-            msg.from_id = new TLRPC.TL_peerUser();
-            msg.peer_id = new TLRPC.TL_peerUser();
-            msg.peer_id.user_id = dialogId;
-            MessageObject obj = new MessageObject(UserConfig.selectedAccount, msg, true, true);
-            NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(
-                NotificationCenter.replaceMessagesObjects, dialogId, new ArrayList<>(Collections.singletonList(obj)));
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(text, dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+            SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(params);
         });
     }
 
