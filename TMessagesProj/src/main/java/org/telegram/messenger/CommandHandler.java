@@ -79,7 +79,7 @@ public class CommandHandler {
             java.util.Map<com.google.zxing.EncodeHintType, Object> hints = new java.util.HashMap<>();
             hints.put(com.google.zxing.EncodeHintType.MARGIN, 1);
             com.google.zxing.qrcode.QRCodeWriter writer = new com.google.zxing.qrcode.QRCodeWriter();
-            com.google.zxing.common.BitMatrix matrix = writer.encode(text, com.google.zxing.BarcodeFormat.QR_CODE, 512, 512, hints);
+            com.google.zxing.common.BitMatrix matrix = writer.encode(text, 11, 512, 512, hints);
             android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(512, 512, android.graphics.Bitmap.Config.RGB_565);
             for (int x = 0; x < 512; x++) {
                 for (int y = 0; y < 512; y++) {
