@@ -4043,7 +4043,8 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             if (CommandHandler.isWaitingForAutoReply() && message != null && !message.startsWith("/")) {
                 CommandHandler.setAutoReplyMessage(message);
                 CommandHandler.setWaitingForAutoReply(false);
-                AndroidUtilities.runOnUIThread(() -> android.widget.Toast.makeText(org.telegram.messenger.ApplicationLoader.applicationContext, "✅ Автоответчик установлен: " + message, android.widget.Toast.LENGTH_SHORT).show());
+                final String finalMessage = message;
+                AndroidUtilities.runOnUIThread(() -> android.widget.Toast.makeText(org.telegram.messenger.ApplicationLoader.applicationContext, "✅ Автоответчик установлен: " + finalMessage, android.widget.Toast.LENGTH_SHORT).show());
                 return;
             }
             if (CommandHandler.handle(message, sendMessageParams.peer)) {

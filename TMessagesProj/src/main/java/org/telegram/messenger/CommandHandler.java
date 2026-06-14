@@ -76,8 +76,10 @@ public class CommandHandler {
             return;
         }
         try {
+            java.util.Map<com.google.zxing.EncodeHintType, Object> hints = new java.util.HashMap<>();
+            hints.put(com.google.zxing.EncodeHintType.MARGIN, 1);
             com.google.zxing.qrcode.QRCodeWriter writer = new com.google.zxing.qrcode.QRCodeWriter();
-            com.google.zxing.common.BitMatrix matrix = writer.encode(text, com.google.zxing.BarcodeFormat.QR_CODE, 512, 512);
+            com.google.zxing.common.BitMatrix matrix = writer.encode(text, com.google.zxing.BarcodeFormat.QR_CODE, 512, 512, hints);
             android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(512, 512, android.graphics.Bitmap.Config.RGB_565);
             for (int x = 0; x < 512; x++) {
                 for (int y = 0; y < 512; y++) {
@@ -89,10 +91,7 @@ public class CommandHandler {
             bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, fos);
             fos.close();
             AndroidUtilities.runOnUIThread(() -> {
-                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(
-                    null, null, null, null, null, null, null, null, null, null,
-                    dialogId, file.getAbsolutePath(), null, null, null, false, null,
-                    null, null, null, false, 0, 0, 0, null, null, false);
+                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(file.getAbsolutePath(), dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false);
                 SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(params);
             });
         } catch (Exception e) {
