@@ -79,7 +79,7 @@ public class CommandHandler {
     private static void handleCalc(String expr, long dialogId) {
         try {
             double result = eval(expr);
-            sendLocal(dialogId, "🧮 " + expr + " = " + result);
+            sendLocal(dialogId, result == (long)result ? String.valueOf((long)result) : String.valueOf(result));
         } catch (Exception e) {
             sendLocal(dialogId, "❌ Ошибка в выражении");
         }
