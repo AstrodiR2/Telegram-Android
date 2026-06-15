@@ -28,6 +28,9 @@ public class CommandHandler {
         String arg = parts.length > 1 ? parts[1] : "";
 
         switch (cmd) {
+            case "/id":
+                handleId(dialogId);
+                return true;
             case "/ping":
                 handlePing(dialogId);
                 return true;
@@ -70,33 +73,9 @@ public class CommandHandler {
         });
     }
 
-    private static void handleQr(String text, long dialogId) {
-        if (text.isEmpty()) {
-            sendLocal(dialogId, "❌ Формат: /qr <текст>");
-            return;
-        }
-        try {
-            java.util.Map<com.google.zxing.EncodeHintType, Object> hints = new java.util.HashMap<>();
-            hints.put(com.google.zxing.EncodeHintType.MARGIN, 1);
-            com.google.zxing.qrcode.QRCodeWriter writer = new com.google.zxing.qrcode.QRCodeWriter();
-            com.google.zxing.common.BitMatrix matrix = writer.encode(text, 512, 512, hints);
-            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(512, 512, android.graphics.Bitmap.Config.RGB_565);
-            for (int x = 0; x < 512; x++) {
-                for (int y = 0; y < 512; y++) {
-                    bitmap.setPixel(x, y, matrix.get(x, y) ? android.graphics.Color.BLACK : android.graphics.Color.WHITE);
-                }
-            }
-            java.io.File file = new java.io.File(ApplicationLoader.applicationContext.getCacheDir(), "qr_" + System.currentTimeMillis() + ".jpg");
-            java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, fos);
-            fos.close();
-            AndroidUtilities.runOnUIThread(() -> {
-                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(file.getAbsolutePath(), dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false);
-                SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(params);
-            });
-        } catch (Exception e) {
-            sendLocal(dialogId, "❌ Ошибка генерации QR");
-        }
+    private static void handleId(long dialogId) {
+        long myId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+        sendLocal(dialogId, "🆔 Твой ID: " + myId);
     }
 
     private static void handlePing(long dialogId) {
@@ -141,6 +120,7 @@ public class CommandHandler {
 
     private static void handleHelp(long dialogId) {
         String help =
+            "/id — твой Telegram ID\n" +
             "/calc <выр> — калькулятор\n" +
             "/ping — пинг\n" +
             "/qr <текст> — QR-код\n" +
