@@ -13,6 +13,7 @@ import android.widget.Toast;
 import android.content.Context;
 import android.os.Looper;
 import org.telegram.messenger.AiManager;
+import org.telegram.tgnet.ConnectionsManager;
 
 public class CommandHandler {
 
