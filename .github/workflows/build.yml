@@ -34,7 +34,7 @@ jobs:
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
 
       - name: Build APK
-        run: ./gradlew assembleAfatRelease --no-daemon -Pandroid.injected.build.abi=arm64-v8a
+        run: ./gradlew :TMessagesProj_App:assembleRelease --no-daemon -Pandroid.injected.build.abi=arm64-v8a
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
