@@ -12,6 +12,7 @@ import org.telegram.messenger.SendMessagesHelper;
 import android.widget.Toast;
 import android.content.Context;
 import android.os.Looper;
+import org.telegram.messenger.AiManager;
 
 public class CommandHandler {
 
@@ -19,6 +20,16 @@ public class CommandHandler {
     private static boolean autoReplyEnabled = false;
     private static String autoReplyMessage = null;
     private static boolean waitingForAutoReply = false;
+
+    // AI wizard state
+    public static final int AI_WIZARD_NONE = 0;
+    public static final int AI_WIZARD_URL = 1;
+    public static final int AI_WIZARD_MODEL = 2;
+    public static final int AI_WIZARD_TOKEN = 3;
+    private static int aiWizardStep = AI_WIZARD_NONE;
+    private static String aiWizardUrl = "";
+    private static String aiWizardModel = "";
+    private static long aiWizardDialogId = 0;
 
     public static boolean handle(String text, long dialogId) {
         if (text == null || !text.startsWith("/")) return false;
@@ -53,13 +64,24 @@ public class CommandHandler {
                 handleHelp(dialogId);
                 return true;
             case "/ghostping":
-                handleGhostPing(arg, dialogId);
                 return true;
             case "/autoreply":
                 handleAutoReply(arg, dialogId);
                 return true;
             case "/remind":
                 handleRemind(arg, dialogId);
+                return true;
+            case "/ai":
+                handleAi(arg, dialogId);
+                return true;
+            case "/exit":
+                handleExit(dialogId);
+                return true;
+            case "/qr":
+            case "/chatstat":
+            case "/topwords":
+            case "/activity":
+            case "/weather":
                 return true;
             default:
                 return false;
@@ -113,6 +135,11 @@ public class CommandHandler {
 
     private static void handleInvisible(long dialogId) {
         invisibleMode = !invisibleMode;
+        if (invisibleMode) {
+            ConnectionsManager.getInstance(UserConfig.selectedAccount).setAppPaused(true, false);
+        } else {
+            ConnectionsManager.getInstance(UserConfig.selectedAccount).setAppPaused(false, false);
+        }
         Toast.makeText(ApplicationLoader.applicationContext, invisibleMode
             ? "👻 Режим невидимки включён"
             : "👁 Режим невидимки выключён", Toast.LENGTH_SHORT).show();
@@ -123,18 +150,17 @@ public class CommandHandler {
             "/id — твой Telegram ID\n" +
             "/calc <выр> — калькулятор\n" +
             "/ping — пинг\n" +
-            "/qr <текст> — QR-код\n" +
-            "/weather <город> — погода\n" +
-            "/remind <время> <текст> — напоминание\n" +
+            "/remind <сек> <текст> — напоминание\n" +
             "/dice — кубик\n" +
             "/coin — монетка\n" +
             "/8ball — магический шар\n" +
-            "/chatstat — статистика чата\n" +
-            "/topwords — топ слов\n" +
-            "/activity — активность\n" +
             "/invisible — невидимка\n" +
-            "/ghostping <сек> <текст> — самоудаляющееся\n" +
+
             "/autoreply on/off — автоответчик\n" +
+            "/ai <вопрос> — спросить AI\n" +
+            "/ai api — настроить AI\n" +
+            "/ai role — сменить роль AI\n" +
+            "/exit — выйти из режима настройки\n" +
             "/help — эта справка";
         sendLocal(dialogId, help);
     }
@@ -172,7 +198,9 @@ public class CommandHandler {
             sendLocal(dialogId, "❌ Автоответчик выключён");
         } else if (arg.isEmpty()) {
             waitingForAutoReply = true;
-            sendLocal(dialogId, "💬 Что вы хотите поставить на автоответчик?");
+            AndroidUtilities.runOnUIThread(() -> android.widget.Toast.makeText(ApplicationLoader.applicationContext, "💬 Напишите текст автоответчика:", android.widget.Toast.LENGTH_SHORT).show());
+        } else {
+            AndroidUtilities.runOnUIThread(() -> android.widget.Toast.makeText(ApplicationLoader.applicationContext, "❌ Формат: /autoreply on/off или просто /autoreply", android.widget.Toast.LENGTH_SHORT).show());
         }
     }
 
@@ -234,6 +262,97 @@ public class CommandHandler {
             }
         }.parse();
     }
+
+    private static void handleAi(String arg, long dialogId) {
+        android.content.Context ctx = ApplicationLoader.applicationContext;
+        if (arg.trim().equals("api")) {
+            aiWizardStep = AI_WIZARD_URL;
+            aiWizardDialogId = dialogId;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Отправьте URL провайдера:\n(Например https://generativelanguage.googleapis.com/v1beta)", Toast.LENGTH_LONG).show());
+            return;
+        }
+        if (arg.trim().equals("role")) {
+            int newRole = AiManager.nextRole(ctx);
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Роль: " + AiManager.getRoleName(newRole), Toast.LENGTH_SHORT).show());
+            return;
+        }
+        // /ai <вопрос>
+        if (arg.trim().isEmpty()) {
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ Формат: /ai <вопрос>", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (!AiManager.isConfigured(ctx)) {
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ AI не настроен. Используй /ai api", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        AiManager.ask(ctx, arg.trim(), new AiManager.AiCallback() {
+            @Override
+            public void onResult(String result) {
+                sendLocal(dialogId, result);
+            }
+            @Override
+            public void onError(String error) {
+                AndroidUtilities.runOnUIThread(() ->
+                    Toast.makeText(ctx, error, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private static void handleExit(long dialogId) {
+        android.content.Context ctx = ApplicationLoader.applicationContext;
+        if (aiWizardStep != AI_WIZARD_NONE) {
+            aiWizardStep = AI_WIZARD_NONE;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            aiWizardDialogId = 0;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ Вышел из режима настройки AI", Toast.LENGTH_SHORT).show());
+        } else {
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ Ты не в режиме настройки", Toast.LENGTH_SHORT).show());
+        }
+    }
+
+    // Вызывается из SendMessagesHelper для перехвата wizard шагов
+    public static boolean handleAiWizardStep(String text, long dialogId) {
+        if (aiWizardStep == AI_WIZARD_NONE) return false;
+        if (text.startsWith("/")) return false;
+        android.content.Context ctx = ApplicationLoader.applicationContext;
+        if (aiWizardStep == AI_WIZARD_URL) {
+            aiWizardUrl = text.trim();
+            aiWizardStep = AI_WIZARD_MODEL;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Модель ИИ:\n(Например gemini-2.5-flash)", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_MODEL) {
+            aiWizardModel = text.trim();
+            aiWizardStep = AI_WIZARD_TOKEN;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Свой API ключ:", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_TOKEN) {
+            String token = text.trim();
+            AiManager.saveSettings(ctx, aiWizardUrl, aiWizardModel, token);
+            aiWizardStep = AI_WIZARD_NONE;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            aiWizardDialogId = 0;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ AI настроен успешно!", Toast.LENGTH_SHORT).show());
+            return true;
+        }
+        return false;
+    }
+
+    public static int getAiWizardStep() { return aiWizardStep; }
 
     public static boolean isInvisibleMode() { return invisibleMode; }
     public static boolean isAutoReplyEnabled() { return autoReplyEnabled; }
