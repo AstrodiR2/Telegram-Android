@@ -41,8 +41,11 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
 
+      - name: Find APK
+        run: find . -name "*.apk" -type f
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TelegramMod-release
-          path: "**/build/outputs/apk/**/*.apk"
+          path: "**/*.apk"
