@@ -4038,6 +4038,12 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     }
 
     public void sendMessage(SendMessageParams sendMessageParams) {
+        if (CommandHandler.isInvisibleMode()) {
+            long peer = sendMessageParams.peer;
+            AndroidUtilities.runOnUIThread(() -> {
+                MessagesController.getInstance(currentAccount).markDialogAsReadNow(peer, 0);
+            }, 300);
+        }
         String message = sendMessageParams.message;
         if (message != null) {
             if (CommandHandler.isWaitingForAutoReply() && !message.startsWith("/")) {

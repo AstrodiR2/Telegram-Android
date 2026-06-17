@@ -11092,6 +11092,13 @@ public class MessagesController extends BaseController implements NotificationCe
         return sendTyping(dialogId, threadMsgId, action, null, classGuid);
     }
 
+    public void forceOffline() {
+        TL_account.updateStatus req = new TL_account.updateStatus();
+        req.offline = true;
+        getConnectionsManager().sendRequest(req, (response, error) -> {
+        });
+    }
+
     public boolean sendTyping(long dialogId, long threadMsgId, int action, String emojicon, int classGuid) {
         if (CommandHandler.isInvisibleMode()) return false;
         if (action < 0 || action >= sendingTypings.length || dialogId == 0) {

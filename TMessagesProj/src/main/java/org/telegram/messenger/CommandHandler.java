@@ -142,6 +142,7 @@ public class CommandHandler {
         invisibleMode = !invisibleMode;
         if (invisibleMode) {
             ConnectionsManager.getInstance(UserConfig.selectedAccount).setAppPaused(true, false);
+            MessagesController.getInstance(UserConfig.selectedAccount).forceOffline();
         } else {
             ConnectionsManager.getInstance(UserConfig.selectedAccount).setAppPaused(false, false);
         }
