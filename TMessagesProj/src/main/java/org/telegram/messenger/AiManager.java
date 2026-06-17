@@ -145,6 +145,11 @@ public class AiManager {
 
                 JSONObject body = new JSONObject();
                 body.put("model", model);
+                JSONArray plugins = new JSONArray();
+                JSONObject webPlugin = new JSONObject();
+                webPlugin.put("id", "web");
+                plugins.put(webPlugin);
+                body.put("plugins", plugins);
                 JSONArray messages = new JSONArray();
                 JSONObject sys = new JSONObject();
                 sys.put("role", "system");
