@@ -41,6 +41,9 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
 
+      - name: Find APK
+        run: find . -name "*.apk" 2>/dev/null
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
