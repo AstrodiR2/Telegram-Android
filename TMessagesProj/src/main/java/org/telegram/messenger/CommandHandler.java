@@ -169,6 +169,7 @@ public class CommandHandler {
             "  /ai <вопрос> — спросить AI\n" +
             "  /ai api — настроить AI\n" +
             "  /ai role — сменить роль\n" +
+            "  /ai clean — очистить историю\n" +
             "  /exit — выйти из настройки\n" +
             "\n" +
             "  /help — эта справка";
@@ -290,6 +291,12 @@ public class CommandHandler {
                 Toast.makeText(ctx, "Роль: " + AiManager.getRoleName(newRole), Toast.LENGTH_SHORT).show());
             return;
         }
+        if (arg.trim().equals("clean")) {
+            AiManager.clearHistory(ctx, dialogId);
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "🧹 История очищена", Toast.LENGTH_SHORT).show());
+            return;
+        }
         // /ai <вопрос>
         if (arg.trim().isEmpty()) {
             AndroidUtilities.runOnUIThread(() ->
@@ -301,7 +308,7 @@ public class CommandHandler {
                 Toast.makeText(ctx, "❌ AI не настроен. Используй /ai api", Toast.LENGTH_SHORT).show());
             return;
         }
-        AiManager.ask(ctx, arg.trim(), new AiManager.AiCallback() {
+        AiManager.ask(ctx, dialogId, arg.trim(), new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
                 sendLocal(dialogId, result);
