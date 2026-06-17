@@ -124,6 +124,7 @@ public class AiManager {
                 user.put("content", question);
                 messages.put(user);
                 body.put("messages", messages);
+		body.put("max_tokens", 500);
 
                 byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
                 OutputStream os = conn.getOutputStream();
