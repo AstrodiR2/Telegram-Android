@@ -31,15 +31,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > TMessagesProj/config/release.keystore
+
+      - name: Set signing properties
+        run: |
+          sed -i "s/^RELEASE_KEY_PASSWORD=.*/RELEASE_KEY_PASSWORD=${{ secrets.KEY_STORE_PASSWORD }}/" gradle.properties
+          sed -i "s/^RELEASE_KEY_ALIAS=.*/RELEASE_KEY_ALIAS=${{ secrets.KEY_ALIAS }}/" gradle.properties
+          sed -i "s/^RELEASE_STORE_PASSWORD=.*/RELEASE_STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}/" gradle.properties
 
       - name: Build APK
         run: ./gradlew :TMessagesProj_App:assembleRelease --no-daemon -Pandroid.injected.build.abi=arm64-v8a
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
 
       - name: Find APK
         run: find . -name "*.apk" -type f
