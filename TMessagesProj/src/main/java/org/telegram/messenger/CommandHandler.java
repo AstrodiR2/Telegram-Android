@@ -148,21 +148,30 @@ public class CommandHandler {
 
     private static void handleHelp(long dialogId) {
         String help =
-            "/id — твой Telegram ID\n" +
-            "/calc <выр> — калькулятор\n" +
-            "/ping — пинг\n" +
-            "/remind <сек> <текст> — напоминание\n" +
-            "/dice — кубик\n" +
-            "/coin — монетка\n" +
-            "/8ball — магический шар\n" +
-            "/invisible — невидимка\n" +
-
-            "/autoreply on/off — автоответчик\n" +
-            "/ai <вопрос> — спросить AI\n" +
-            "/ai api — настроить AI\n" +
-            "/ai role — сменить роль AI\n" +
-            "/exit — выйти из режима настройки\n" +
-            "/help — эта справка";
+            "📋 Команды мода\n" +
+            "\n" +
+            "👤 Утилиты\n" +
+            "  /id — твой Telegram ID\n" +
+            "  /ping — задержка\n" +
+            "\n" +
+            "🧮 Инструменты\n" +
+            "  /calc <выр> — калькулятор\n" +
+            "  /dice — кубик 🎲\n" +
+            "  /coin — монетка 🪙\n" +
+            "  /8ball — магический шар 🎱\n" +
+            "  /remind <сек> <текст> — напоминание ⏰\n" +
+            "\n" +
+            "👻 Режимы\n" +
+            "  /invisible — невидимка\n" +
+            "  /autoreply — автоответчик\n" +
+            "\n" +
+            "🤖 AI\n" +
+            "  /ai <вопрос> — спросить AI\n" +
+            "  /ai api — настроить AI\n" +
+            "  /ai role — сменить роль\n" +
+            "  /exit — выйти из настройки\n" +
+            "\n" +
+            "  /help — эта справка";
         sendLocal(dialogId, help);
     }
 
