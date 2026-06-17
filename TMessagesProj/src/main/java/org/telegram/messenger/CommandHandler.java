@@ -32,7 +32,7 @@ public class CommandHandler {
     private static String aiWizardModel = "";
     private static long aiWizardDialogId = 0;
 
-    public static boolean handle(String text, long dialogId) {
+    public static boolean handle(String text, long dialogId, MessageObject replyToMsg) {
         if (text == null || !text.startsWith("/")) return false;
 
         String[] parts = text.trim().split(" ", 2);
@@ -73,7 +73,7 @@ public class CommandHandler {
                 handleRemind(arg, dialogId);
                 return true;
             case "/ai":
-                handleAi(arg, dialogId);
+                handleAi(arg, dialogId, replyToMsg);
                 return true;
             case "/exit":
                 handleExit(dialogId);
@@ -90,8 +90,12 @@ public class CommandHandler {
     }
 
     private static void sendLocal(long dialogId, String text) {
+        sendLocal(dialogId, text, null);
+    }
+
+    private static void sendLocal(long dialogId, String text, MessageObject replyToMsg) {
         AndroidUtilities.runOnUIThread(() -> {
-            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(text, dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(text, dialogId, replyToMsg, null, null, false, null, null, null, false, 0, 0, null, false);
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(params);
         });
     }
@@ -274,7 +278,7 @@ public class CommandHandler {
         }.parse();
     }
 
-    private static void handleAi(String arg, long dialogId) {
+    private static void handleAi(String arg, long dialogId, MessageObject replyToMsg) {
         android.content.Context ctx = ApplicationLoader.applicationContext;
         if (arg.trim().equals("api")) {
             aiWizardStep = AI_WIZARD_URL;
@@ -311,7 +315,7 @@ public class CommandHandler {
         AiManager.ask(ctx, dialogId, arg.trim(), new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
-                sendLocal(dialogId, result);
+                sendLocal(dialogId, result, replyToMsg);
             }
             @Override
             public void onError(String error) {

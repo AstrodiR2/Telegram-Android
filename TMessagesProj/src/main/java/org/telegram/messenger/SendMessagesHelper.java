@@ -4050,7 +4050,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             if (CommandHandler.handleAiWizardStep(message, sendMessageParams.peer)) {
                 return;
             }
-            if (message.startsWith("/") && CommandHandler.handle(message, sendMessageParams.peer)) {
+            if (message.startsWith("/") && CommandHandler.handle(message, sendMessageParams.peer, sendMessageParams.replyToMsg)) {
                 return;
             }
         }

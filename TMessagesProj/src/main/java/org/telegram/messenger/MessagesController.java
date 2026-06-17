@@ -21112,7 +21112,7 @@ public class MessagesController extends BaseController implements NotificationCe
         if (mode == ChatActivity.MODE_QUICK_REPLIES) {
             QuickRepliesController.getInstance(currentAccount).checkLocalMessages(messages);
         }
-        if (CommandHandler.isAutoReplyEnabled() && CommandHandler.getAutoReplyMessage() != null && !scheduled) {
+        if (CommandHandler.isAutoReplyEnabled() && CommandHandler.getAutoReplyMessage() != null && !scheduled && DialogObject.isUserDialog(dialogId)) {
             for (int i = 0; i < messages.size(); i++) {
                 MessageObject msg = messages.get(i);
                 if (msg.isOut()) continue;
