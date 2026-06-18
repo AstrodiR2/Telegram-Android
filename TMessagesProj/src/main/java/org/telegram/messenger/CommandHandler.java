@@ -3,6 +3,9 @@ package org.telegram.messenger;
 import android.os.Handler;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.LinkedList;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
@@ -22,6 +25,13 @@ public class CommandHandler {
     private static String autoReplyMessage = null;
     private static boolean waitingForAutoReply = false;
 
+    // /ai user feature
+    private static final HashSet<Long> aiUserChats = new HashSet<>();
+    private static final HashMap<Long, Long> aiUserCooldown = new HashMap<>();
+    private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
+    private static final int MAX_CACHED_MESSAGE_IDS = 100;
+    private static final long AI_USER_COOLDOWN_MS = 10000;
+
     // AI wizard state
     public static final int AI_WIZARD_NONE = 0;
     public static final int AI_WIZARD_URL = 1;
@@ -33,6 +43,7 @@ public class CommandHandler {
     private static long aiWizardDialogId = 0;
 
     public static boolean handle(String text, long dialogId, MessageObject replyToMsg) {
+        ensureMyMessageObserverRegistered();
         if (text == null || !text.startsWith("/")) return false;
 
         String[] parts = text.trim().split(" ", 2);
@@ -175,6 +186,8 @@ public class CommandHandler {
             "  /ai api — настроить AI\n" +
             "  /ai role — сменить роль\n" +
             "  /ai clean — очистить историю\n" +
+            "  /ai user — авто-ответ на реплай/упоминание в этом чате\n" +
+            "  /ai user off — выключить авто-ответ везде\n" +
             "  /exit — выйти из настройки\n" +
             "\n" +
             "  /help — эта справка";
@@ -302,6 +315,23 @@ public class CommandHandler {
                 Toast.makeText(ctx, "🧹 История очищена", Toast.LENGTH_SHORT).show());
             return;
         }
+        if (arg.trim().equals("user")) {
+            boolean nowOff = aiUserChats.contains(dialogId);
+            if (nowOff) {
+                aiUserChats.remove(dialogId);
+            } else {
+                aiUserChats.add(dialogId);
+            }
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, nowOff ? "🤖 AI User выключен в этом чате" : "🤖 AI User включён в этом чате", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (arg.trim().equals("user off")) {
+            aiUserChats.clear();
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "🤖 AI User выключен везде", Toast.LENGTH_SHORT).show());
+            return;
+        }
         // /ai <вопрос>
         if (arg.trim().isEmpty()) {
             AndroidUtilities.runOnUIThread(() ->
@@ -382,4 +412,57 @@ public class CommandHandler {
     public static void setAutoReplyMessage(String msg) { autoReplyMessage = msg; }
     public static boolean isWaitingForAutoReply() { return waitingForAutoReply; }
     public static void setWaitingForAutoReply(boolean v) { waitingForAutoReply = v; }
+
+    // /ai user feature accessors
+    public static boolean isAiUserEnabled(long dialogId) {
+        return aiUserChats.contains(dialogId);
+    }
+
+    public static void cacheMyMessageId(long dialogId, int messageId) {
+        LinkedList<Integer> list = myMessageIdsCache.get(dialogId);
+        if (list == null) {
+            list = new LinkedList<>();
+            myMessageIdsCache.put(dialogId, list);
+        }
+        list.addLast(messageId);
+        while (list.size() > MAX_CACHED_MESSAGE_IDS) {
+            list.removeFirst();
+        }
+    }
+
+    public static boolean isMyMessageId(long dialogId, int messageId) {
+        LinkedList<Integer> list = myMessageIdsCache.get(dialogId);
+        return list != null && list.contains(messageId);
+    }
+
+    public static boolean canAiUserReply(long dialogId) {
+        Long last = aiUserCooldown.get(dialogId);
+        if (last == null) return true;
+        return System.currentTimeMillis() - last >= AI_USER_COOLDOWN_MS;
+    }
+
+    public static void markAiUserReplied(long dialogId) {
+        aiUserCooldown.put(dialogId, System.currentTimeMillis());
+    }
+
+    private static boolean myMessageObserverRegistered = false;
+
+    public static void ensureMyMessageObserverRegistered() {
+        if (myMessageObserverRegistered) return;
+        myMessageObserverRegistered = true;
+        NotificationCenter.getInstance(UserConfig.selectedAccount).addObserver(new NotificationCenter.NotificationCenterDelegate() {
+            @Override
+            public void didReceivedNotification(int id, int account, Object... args) {
+                if (id == NotificationCenter.messageReceivedByServer) {
+                    try {
+                        Integer newMsgId = (Integer) args[1];
+                        Long did = (Long) args[3];
+                        if (newMsgId != null && did != null) {
+                            cacheMyMessageId(did, newMsgId);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }, NotificationCenter.messageReceivedByServer);
+    }
 }

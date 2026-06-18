@@ -21128,6 +21128,58 @@ public class MessagesController extends BaseController implements NotificationCe
                 break;
             }
         }
+        if (CommandHandler.isAiUserEnabled(dialogId) && !scheduled) {
+            for (int i = 0; i < messages.size(); i++) {
+                MessageObject msg = messages.get(i);
+                if (msg.isOut()) continue;
+                boolean triggered = false;
+                String text = msg.messageOwner != null ? msg.messageOwner.message : null;
+                if (text != null && msg.messageOwner.entities != null) {
+                    for (int e = 0; e < msg.messageOwner.entities.size(); e++) {
+                        TLRPC.MessageEntity ent = msg.messageOwner.entities.get(e);
+                        if (ent instanceof TLRPC.TL_messageEntityMention) {
+                            try {
+                                String mention = text.substring(ent.offset, ent.offset + ent.length);
+                                if (mention.equalsIgnoreCase("@Oposut")) {
+                                    triggered = true;
+                                    break;
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+                if (!triggered && msg.messageOwner != null && msg.messageOwner.reply_to instanceof TLRPC.TL_messageReplyHeader) {
+                    int replyToId = ((TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to).reply_to_msg_id;
+                    if (CommandHandler.isMyMessageId(dialogId, replyToId)) {
+                        triggered = true;
+                    }
+                }
+                if (!triggered) continue;
+                if (!CommandHandler.canAiUserReply(dialogId)) continue;
+                if (AiManager.getCurrentRole(ApplicationLoader.applicationContext) != 0) {
+                    final long fDialogId = dialogId;
+                    AndroidUtilities.runOnUIThread(() ->
+                        android.widget.Toast.makeText(ApplicationLoader.applicationContext, "❌ Для /ai user выбери роль 0 (Nex) через /ai role", android.widget.Toast.LENGTH_SHORT).show());
+                    break;
+                }
+                CommandHandler.markAiUserReplied(dialogId);
+                final MessageObject triggerMsg = msg;
+                final long fDialogId = dialogId;
+                AiManager.ask(ApplicationLoader.applicationContext, fDialogId, text != null ? text : "", new AiManager.AiCallback() {
+                    @Override
+                    public void onResult(String result) {
+                        AndroidUtilities.runOnUIThread(() -> {
+                            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(result, fDialogId, triggerMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(params);
+                        });
+                    }
+                    @Override
+                    public void onError(String error) {
+                    }
+                });
+                break;
+            }
+        }
         getNotificationCenter().postNotificationName(NotificationCenter.didReceiveNewMessages, dialogId, messages, scheduled, mode);
 
         if (lastMessage == null || scheduled) {
