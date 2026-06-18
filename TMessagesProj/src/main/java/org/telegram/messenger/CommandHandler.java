@@ -487,6 +487,12 @@ public class CommandHandler {
         return System.currentTimeMillis() - last >= AI_USER_COOLDOWN_MS;
     }
 
+    public static long getCooldownLeft(long dialogId) {
+        Long last = aiUserCooldown.get(dialogId);
+        if (last == null) return 0;
+        return Math.max(0, AI_USER_COOLDOWN_MS - (System.currentTimeMillis() - last));
+    }
+
     public static void markAiUserReplied(long dialogId) {
         aiUserCooldown.put(dialogId, System.currentTimeMillis());
     }

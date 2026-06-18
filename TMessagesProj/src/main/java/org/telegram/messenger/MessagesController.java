@@ -21161,6 +21161,16 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (!triggered) continue;
                 if (!CommandHandler.canAiUserReply(dialogId)) {
                     CommandHandler.addLog("⏱ Кулдаун активен, пропуск");
+                    long cdLeft = CommandHandler.getCooldownLeft(dialogId);
+                    final long fDialogId2 = dialogId;
+                    final MessageObject triggerMsg2 = msg;
+                    final long cdSec = (cdLeft / 1000) + 1;
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                            "⏳ Отвечу через " + cdSec + " сек.",
+                            fDialogId2, triggerMsg2, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                    });
                     continue;
                 }
                 if (AiManager.getCurrentRole(ApplicationLoader.applicationContext) != 0) {
