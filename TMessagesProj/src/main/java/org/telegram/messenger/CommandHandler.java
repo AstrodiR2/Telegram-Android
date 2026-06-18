@@ -75,6 +75,9 @@ public class CommandHandler {
             case "/help":
                 handleHelp(dialogId);
                 return true;
+            case "/log":
+                handleLog(dialogId);
+                return true;
             case "/ghostping":
                 return true;
             case "/autoreply":
@@ -162,6 +165,27 @@ public class CommandHandler {
             : "👁 Режим невидимки выключён", Toast.LENGTH_SHORT).show();
     }
 
+    private static void handleLog(long dialogId) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("🛠 Состояние мода\n\n");
+        sb.append("👻 Invisible: ").append(invisibleMode ? "ВКЛ" : "выкл").append("\n");
+        sb.append("🤖 AutoReply: ").append(autoReplyEnabled ? "ВКЛ" : "выкл").append("\n");
+        sb.append("⏳ Waiting for autoreply text: ").append(waitingForAutoReply).append("\n");
+        sb.append("🧙 AI Wizard step: ").append(aiWizardStep).append("\n");
+        sb.append("🤖 AI User enabled (this chat): ").append(aiUserChats.contains(dialogId)).append("\n");
+        sb.append("🤖 AI User enabled chats count: ").append(aiUserChats.size()).append("\n");
+        Long cd = aiUserCooldown.get(dialogId);
+        if (cd != null) {
+            long left = AI_USER_COOLDOWN_MS - (System.currentTimeMillis() - cd);
+            sb.append("⏱ AI User cooldown left: ").append(Math.max(0, left)).append("ms\n");
+        } else {
+            sb.append("⏱ AI User cooldown: нет\n");
+        }
+        LinkedList<Integer> cached = myMessageIdsCache.get(dialogId);
+        sb.append("📦 Cached my message IDs (this chat): ").append(cached != null ? cached.size() : 0).append("\n");
+        sendLocal(dialogId, sb.toString());
+    }
+
     private static void handleHelp(long dialogId) {
         String help =
             "📋 Команды мода\n" +
@@ -190,6 +214,7 @@ public class CommandHandler {
             "  /ai user off — выключить авто-ответ везде\n" +
             "  /exit — выйти из настройки\n" +
             "\n" +
+            "  /log — состояние мода (диагностика)\n" +
             "  /help — эта справка";
         sendLocal(dialogId, help);
     }
