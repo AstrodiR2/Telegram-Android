@@ -30,6 +30,17 @@ public class CommandHandler {
     private static final HashMap<Long, Long> aiUserCooldown = new HashMap<>();
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
+
+    // Event log buffer
+    private static final LinkedList<String> eventLog = new LinkedList<>();
+    private static final int MAX_LOG_ENTRIES = 30;
+    public static void addLog(String entry) {
+        String ts = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(new java.util.Date());
+        synchronized (eventLog) {
+            eventLog.addLast("[" + ts + "] " + entry);
+            if (eventLog.size() > MAX_LOG_ENTRIES) eventLog.removeFirst();
+        }
+    }
     private static final long AI_USER_COOLDOWN_MS = 10000;
 
     // AI wizard state
@@ -183,6 +194,16 @@ public class CommandHandler {
         }
         LinkedList<Integer> cached = myMessageIdsCache.get(dialogId);
         sb.append("📦 Cached my message IDs (this chat): ").append(cached != null ? cached.size() : 0).append("\n");
+        sb.append("\n📋 Лог событий:\n");
+        synchronized (eventLog) {
+            if (eventLog.isEmpty()) {
+                sb.append("  (пусто)\n");
+            } else {
+                for (String entry : eventLog) {
+                    sb.append("  ").append(entry).append("\n");
+                }
+            }
+        }
         sendLocal(dialogId, sb.toString());
     }
 

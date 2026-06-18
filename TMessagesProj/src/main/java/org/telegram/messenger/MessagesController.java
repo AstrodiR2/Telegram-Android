@@ -21142,6 +21142,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                 String mention = text.substring(ent.offset, ent.offset + ent.length);
                                 if (mention.equalsIgnoreCase("@Oposut")) {
                                     triggered = true;
+                                    CommandHandler.addLog("✅ Триггер: упоминание @Oposut от " + (msg.messageOwner.from_id != null ? msg.messageOwner.from_id : "?"));
                                     break;
                                 }
                             } catch (Exception ignored) {}
@@ -21152,10 +21153,16 @@ public class MessagesController extends BaseController implements NotificationCe
                     int replyToId = ((TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to).reply_to_msg_id;
                     if (CommandHandler.isMyMessageId(dialogId, replyToId)) {
                         triggered = true;
+                        CommandHandler.addLog("✅ Триггер: реплай на моё сообщение ID=" + replyToId);
+                    } else {
+                        CommandHandler.addLog("⚠️ Реплай на ID=" + replyToId + " — не в кэше, пропуск");
                     }
                 }
                 if (!triggered) continue;
-                if (!CommandHandler.canAiUserReply(dialogId)) continue;
+                if (!CommandHandler.canAiUserReply(dialogId)) {
+                    CommandHandler.addLog("⏱ Кулдаун активен, пропуск");
+                    continue;
+                }
                 if (AiManager.getCurrentRole(ApplicationLoader.applicationContext) != 0) {
                     final long fDialogId = dialogId;
                     AndroidUtilities.runOnUIThread(() ->
@@ -21163,6 +21170,7 @@ public class MessagesController extends BaseController implements NotificationCe
                     break;
                 }
                 CommandHandler.markAiUserReplied(dialogId);
+                CommandHandler.addLog("🤖 Отправляю запрос к AI...");
                 final MessageObject triggerMsg = msg;
                 final long fDialogId = dialogId;
                 AiManager.ask(ApplicationLoader.applicationContext, fDialogId, text != null ? text : "", new AiManager.AiCallback() {
@@ -21175,6 +21183,7 @@ public class MessagesController extends BaseController implements NotificationCe
                     }
                     @Override
                     public void onError(String error) {
+                        CommandHandler.addLog("❌ Ошибка AI: " + error);
                     }
                 });
                 break;
