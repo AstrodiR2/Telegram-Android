@@ -21134,13 +21134,17 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (msg.isOut()) continue;
                 boolean triggered = false;
                 String text = msg.messageOwner != null ? msg.messageOwner.message : null;
+                if (text != null && text.toLowerCase().contains("квас")) {
+                    triggered = true;
+                    CommandHandler.addLog("✅ Триггер: слово \"квас\" в сообщении");
+                }
                 if (text != null && msg.messageOwner.entities != null) {
                     for (int e = 0; e < msg.messageOwner.entities.size(); e++) {
                         TLRPC.MessageEntity ent = msg.messageOwner.entities.get(e);
                         if (ent instanceof TLRPC.TL_messageEntityMention) {
                             try {
                                 String mention = text.substring(ent.offset, ent.offset + ent.length);
-                                if (mention.equalsIgnoreCase("@Oposut")) {
+                                if (mention.equalsIgnoreCase("@Oposut") || mention.equalsIgnoreCase("квас")) {
                                     triggered = true;
                                     CommandHandler.addLog("✅ Триггер: упоминание @Oposut от " + (msg.messageOwner.from_id != null ? msg.messageOwner.from_id : "?"));
                                     break;
