@@ -201,7 +201,8 @@ public class AiManager {
                 assistantMsg.put("content", result);
                 updatedHistory.put(assistantMsg);
                 saveHistory(context, dialogId, updatedHistory);
-                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(result));
+                final String finalResult = result;
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalResult));
                 } else {
                     new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка API: " + code + " " + sb.toString()));
                 }
