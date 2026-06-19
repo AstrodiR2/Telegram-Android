@@ -21220,7 +21220,11 @@ public class MessagesController extends BaseController implements NotificationCe
                         @Override
                         public void onResult(String result) {
                             AndroidUtilities.runOnUIThread(() -> {
-                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(result, fDialogId, triggerMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                                CharSequence[] msg2 = {result};
+                                java.util.ArrayList<org.telegram.tgnet.TLRPC.MessageEntity> ents =
+                                    org.telegram.messenger.MediaDataController.getInstance(currentAccount).getEntities(msg2, true);
+                                String cleanResult = msg2[0].toString();
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(cleanResult, fDialogId, triggerMsg, null, null, false, ents, null, null, false, 0, 0, null, false);
                                 SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
                             });
                         }
