@@ -21128,6 +21128,22 @@ public class MessagesController extends BaseController implements NotificationCe
                 break;
             }
         }
+        if (!scheduled) {
+            for (int gi = 0; gi < messages.size(); gi++) {
+                MessageObject gmsg = messages.get(gi);
+                if (gmsg.isOut()) continue;
+                String gtext = gmsg.messageOwner != null ? gmsg.messageOwner.message : null;
+                if (gtext == null || gtext.isEmpty()) continue;
+                long fromId = 0;
+                if (gmsg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                    fromId = ((TLRPC.TL_peerUser) gmsg.messageOwner.from_id).user_id;
+                }
+                TLRPC.User guser = fromId != 0 ? getMessagesController().getUser(fromId) : null;
+                String gname = guser != null && guser.first_name != null ? guser.first_name : "Unknown";
+                String gusername = guser != null ? guser.username : null;
+                CommandHandler.addGroupMessage(dialogId, gname, gusername, gtext);
+            }
+        }
         if (CommandHandler.isAiUserEnabled(dialogId) && !scheduled) {
             for (int i = 0; i < messages.size(); i++) {
                 MessageObject msg = messages.get(i);
@@ -21177,17 +21193,44 @@ public class MessagesController extends BaseController implements NotificationCe
                     });
                     continue;
                 }
-                if (AiManager.getCurrentRole(ApplicationLoader.applicationContext) != 0) {
-                    final long fDialogId = dialogId;
+                int curRole = AiManager.getCurrentRole(ApplicationLoader.applicationContext);
+                if (curRole != 0 && curRole != 4) {
                     AndroidUtilities.runOnUIThread(() ->
-                        android.widget.Toast.makeText(ApplicationLoader.applicationContext, "❌ Для /ai user выбери роль 0 (Nex) через /ai role", android.widget.Toast.LENGTH_SHORT).show());
+                        android.widget.Toast.makeText(ApplicationLoader.applicationContext, "❌ Для /ai user выбери роль 0 (Квас) или 4 (Квас-агент) через /ai role", android.widget.Toast.LENGTH_SHORT).show());
                     break;
                 }
                 CommandHandler.markAiUserReplied(dialogId);
                 CommandHandler.addLog("🤖 Отправляю запрос к AI...");
                 final MessageObject triggerMsg = msg;
                 final long fDialogId = dialogId;
-                AiManager.ask(ApplicationLoader.applicationContext, fDialogId, text != null ? text : "", new AiManager.AiCallback() {
+                final String finalText = text != null ? text : "";
+                if (curRole == 4) {
+                    long fromId4 = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        fromId4 = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    TLRPC.User sender4 = fromId4 != 0 ? getMessagesController().getUser(fromId4) : null;
+                    String senderName4 = sender4 != null && sender4.first_name != null ? sender4.first_name : "Unknown";
+                    String senderUsername4 = sender4 != null ? sender4.username : null;
+                    final long finalFromId4 = fromId4;
+                    final String finalName4 = senderName4;
+                    final String finalUname4 = senderUsername4;
+                    final String groupHistory4 = CommandHandler.getGroupHistory(fDialogId);
+                    AiManager.ask(ApplicationLoader.applicationContext, fDialogId, finalText, finalName4, finalUname4, finalFromId4, groupHistory4, new AiManager.AiCallback() {
+                        @Override
+                        public void onResult(String result) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(result, fDialogId, triggerMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                        }
+                        @Override
+                        public void onError(String error) {
+                            CommandHandler.addLog("❌ Ошибка AI: " + error);
+                        }
+                    });
+                } else {
+                AiManager.ask(ApplicationLoader.applicationContext, fDialogId, finalText, new AiManager.AiCallback() {
                     @Override
                     public void onResult(String result) {
                         AndroidUtilities.runOnUIThread(() -> {
@@ -21200,6 +21243,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         CommandHandler.addLog("❌ Ошибка AI: " + error);
                     }
                 });
+                } // end else role != 4
                 break;
             }
         }

@@ -28,6 +28,8 @@ public class CommandHandler {
     // /ai user feature
     private static final HashSet<Long> aiUserChats = new HashSet<>();
     private static final HashMap<Long, Long> aiUserCooldown = new HashMap<>();
+    private static final HashMap<Long, java.util.LinkedList<String>> groupMessageCache = new HashMap<>();
+    private static final int GROUP_CACHE_SIZE = 20;
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
 
@@ -460,6 +462,26 @@ public class CommandHandler {
     public static void setWaitingForAutoReply(boolean v) { waitingForAutoReply = v; }
 
     // /ai user feature accessors
+    public static void addGroupMessage(long dialogId, String senderName, String senderUsername, String text) {
+        if (text == null || text.isEmpty()) return;
+        String entry = senderName + (senderUsername != null && !senderUsername.isEmpty() ? " (@" + senderUsername + ")" : "") + ": " + text;
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null) {
+            cache = new java.util.LinkedList<>();
+            groupMessageCache.put(dialogId, cache);
+        }
+        cache.addLast(entry);
+        if (cache.size() > GROUP_CACHE_SIZE) cache.removeFirst();
+    }
+
+    public static String getGroupHistory(long dialogId) {
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null || cache.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (String entry : cache) sb.append(entry).append("\n");
+        return sb.toString().trim();
+    }
+
     public static boolean isAiUserEnabled(long dialogId) {
         return aiUserChats.contains(dialogId);
     }
