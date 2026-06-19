@@ -21150,6 +21150,39 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (msg.isOut()) continue;
                 boolean triggered = false;
                 String text = msg.messageOwner != null ? msg.messageOwner.message : null;
+                if (text != null && text.toLowerCase().contains("квас найди")) {
+                    final String songQuery = text.toLowerCase().replace("квас найди", "").trim();
+                    final long fDlg = dialogId;
+                    final MessageObject fMsg = msg;
+                    CommandHandler.addLog("🎵 Поиск песни: " + songQuery);
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("🔍 Ищу...", fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                    });
+                    org.telegram.messenger.AiManager.searchSong(songQuery, new org.telegram.messenger.AiManager.SongCallback() {
+                        @Override
+                        public void onResult(String title, String videoId) {
+                            String reply = "🎵 Нашёл!
+**" + title + "**
+https://youtu.be/" + videoId;
+                            AndroidUtilities.runOnUIThread(() -> {
+                                CharSequence[] msg2 = {reply};
+                                java.util.ArrayList<org.telegram.tgnet.TLRPC.MessageEntity> ents =
+                                    org.telegram.messenger.MediaDataController.getInstance(currentAccount).getEntities(msg2, true);
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(msg2[0].toString(), fDlg, fMsg, null, null, false, ents, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                        }
+                        @Override
+                        public void onError(String error) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + error, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                        }
+                    });
+                    continue;
+                }
                 if (text != null && text.toLowerCase().contains("квас")) {
                     triggered = true;
                     CommandHandler.addLog("✅ Триггер: слово \"квас\" в сообщении");

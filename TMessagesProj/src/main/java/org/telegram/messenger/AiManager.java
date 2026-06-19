@@ -296,6 +296,38 @@ public class AiManager {
         }).start();
     }
 
+    private static final String YOUTUBE_API_KEY = "AIzaSyBZHm7dlacofpt2g3-5tRqhvmXh5ibOw2E";
+
+    public interface SongCallback {
+        void onResult(String title, String videoId);
+        void onError(String error);
+    }
+
+    public static void searchSong(String query, SongCallback callback) {
+        new Thread(() -> {
+            try {
+                String encoded = java.net.URLEncoder.encode(query, "UTF-8");
+                java.net.URL u = new java.net.URL("https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=1&q=" + encoded + "&key=" + YOUTUBE_API_KEY);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
+                conn.setRequestMethod("GET");
+                int code = conn.getResponseCode();
+                java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                JSONObject resp = new JSONObject(sb.toString());
+                JSONArray items = resp.getJSONArray("items");
+                if (items.length() == 0) { new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ничего не нашёл 😕")); return; }
+                JSONObject item = items.getJSONObject(0);
+                String title = item.getJSONObject("snippet").getString("title");
+                String videoId = item.getJSONObject("id").getString("videoId");
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(title, videoId));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка поиска: " + e.getMessage()));
+            }
+        }).start();
+    }
+
     public interface ClassifyCallback {
         void onResult(String tone); // "positive", "funny", "negative", "neutral"
     }
