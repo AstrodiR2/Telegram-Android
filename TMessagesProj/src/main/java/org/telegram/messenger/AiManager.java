@@ -295,4 +295,57 @@ public class AiManager {
             }
         }).start();
     }
+
+    public interface ClassifyCallback {
+        void onResult(String tone); // "positive", "funny", "negative", "neutral"
+    }
+
+    public static void classifyMessage(Context context, String text, ClassifyCallback callback) {
+        String url = getUrl(context);
+        String token = getToken(context);
+        String model = getModel(context);
+        if (url == null || token == null) { callback.onResult("neutral"); return; }
+        new Thread(() -> {
+            try {
+                java.net.URL u = new java.net.URL(url + (url.endsWith("/") ? "" : "/") + "chat/completions");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+                conn.setDoOutput(true);
+                JSONObject sys = new JSONObject();
+                sys.put("role", "system");
+                sys.put("content", "Classify the tone of the user message. Reply with exactly one word: positive, funny, negative, or neutral. No punctuation, no explanation.");
+                JSONObject usr = new JSONObject();
+                usr.put("role", "user");
+                usr.put("content", text);
+                JSONArray msgs = new JSONArray();
+                msgs.put(sys);
+                msgs.put(usr);
+                JSONObject body = new JSONObject();
+                body.put("model", model);
+                body.put("max_tokens", 10);
+                body.put("messages", msgs);
+                byte[] b = body.toString().getBytes(StandardCharsets.UTF_8);
+                conn.getOutputStream().write(b);
+                int code = conn.getResponseCode();
+                java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
+                    code == 200 ? conn.getInputStream() : conn.getErrorStream(), StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                if (code == 200) {
+                    JSONObject resp = new JSONObject(sb.toString());
+                    String tone = resp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim().toLowerCase();
+                    if (!tone.equals("positive") && !tone.equals("funny") && !tone.equals("negative")) tone = "neutral";
+                    final String finalTone = tone;
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalTone));
+                } else {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onResult("neutral"));
+                }
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult("neutral"));
+            }
+        }).start();
+    }
 }

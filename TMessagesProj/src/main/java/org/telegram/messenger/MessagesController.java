@@ -21216,6 +21216,13 @@ public class MessagesController extends BaseController implements NotificationCe
                     final String finalName4 = senderName4;
                     final String finalUname4 = senderUsername4;
                     final String groupHistory4 = CommandHandler.getGroupHistory(fDialogId);
+                    final int triggerMsgId = msg.getId();
+                    AiManager.classifyMessage(ApplicationLoader.applicationContext, finalText, tone -> {
+                        String[] reactions = CommandHandler.getReactionForTone(tone);
+                        if (reactions != null) {
+                            CommandHandler.sendReactionDirect(fDialogId, triggerMsgId, reactions);
+                        }
+                    });
                     AiManager.ask(ApplicationLoader.applicationContext, fDialogId, finalText, finalName4, finalUname4, finalFromId4, groupHistory4, new AiManager.AiCallback() {
                         @Override
                         public void onResult(String result) {

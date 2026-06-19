@@ -506,6 +506,37 @@ public class CommandHandler {
         return aiUserChats.contains(dialogId);
     }
 
+    public static void sendReactionDirect(long dialogId, int msgId, String... emojis) {
+        try {
+            org.telegram.tgnet.TLRPC.TL_messages_sendReaction req = new org.telegram.tgnet.TLRPC.TL_messages_sendReaction();
+            req.peer = org.telegram.messenger.MessagesController.getInstance(UserConfig.selectedAccount).getInputPeer(dialogId);
+            req.msg_id = msgId;
+            req.flags |= 1;
+            for (String emoji : emojis) {
+                org.telegram.tgnet.TLRPC.TL_reactionEmoji r = new org.telegram.tgnet.TLRPC.TL_reactionEmoji();
+                r.emoticon = emoji;
+                req.reaction.add(r);
+            }
+            org.telegram.messenger.ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
+                if (response != null) {
+                    org.telegram.messenger.MessagesController.getInstance(UserConfig.selectedAccount).processUpdates((org.telegram.tgnet.TLRPC.Updates) response, false);
+                }
+            });
+        } catch (Exception e) {
+            addLog("❌ Реакция ошибка: " + e.getMessage());
+        }
+    }
+
+    public static String[] getReactionForTone(String tone) {
+        if (tone == null) return null;
+        switch (tone) {
+            case "positive": return new String[]{"👍"};
+            case "funny":    return new String[]{"😂"};
+            case "negative": return new String[]{"👎", "💩", "🤡"};
+            default:         return null;
+        }
+    }
+
     public static void cacheMyMessageId(long dialogId, int messageId) {
         LinkedList<Integer> list = myMessageIdsCache.get(dialogId);
         if (list == null) {
