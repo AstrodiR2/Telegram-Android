@@ -400,7 +400,15 @@ public class CommandHandler {
                 Toast.makeText(ctx, "❌ AI не настроен. Используй /ai api", Toast.LENGTH_SHORT).show());
             return;
         }
-        AiManager.ask(ctx, dialogId, arg.trim(), new AiManager.AiCallback() {
+        String question = arg.trim();
+        if (replyToMsg != null) {
+            String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
+            if (replyText != null && !replyText.isEmpty()) {
+                question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]
+" + question;
+            }
+        }
+        AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
                 sendLocal(dialogId, result, replyToMsg);
