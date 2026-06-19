@@ -75,11 +75,13 @@ public class AiManager {
                 conn.setReadTimeout(30000);
                 org.json.JSONObject body = new org.json.JSONObject();
                 body.put("model", model);
-                org.json.JSONArray plugins = new org.json.JSONArray();
-                org.json.JSONObject webPlugin = new org.json.JSONObject();
-                webPlugin.put("id", "web");
-                plugins.put(webPlugin);
-                body.put("plugins", plugins);
+                if (apiUrl.contains("openrouter")) {
+                    org.json.JSONArray plugins = new org.json.JSONArray();
+                    org.json.JSONObject webPlugin = new org.json.JSONObject();
+                    webPlugin.put("id", "web");
+                    plugins.put(webPlugin);
+                    body.put("plugins", plugins);
+                }
                 org.json.JSONArray msgs = new org.json.JSONArray();
                 org.json.JSONObject sys = new org.json.JSONObject();
                 sys.put("role", "system");
@@ -229,11 +231,13 @@ public class AiManager {
 
                 JSONObject body = new JSONObject();
                 body.put("model", model);
-                JSONArray plugins = new JSONArray();
-                JSONObject webPlugin = new JSONObject();
-                webPlugin.put("id", "web");
-                plugins.put(webPlugin);
-                body.put("plugins", plugins);
+                if (apiUrl.contains("openrouter")) {
+                    JSONArray plugins = new JSONArray();
+                    JSONObject webPlugin = new JSONObject();
+                    webPlugin.put("id", "web");
+                    plugins.put(webPlugin);
+                    body.put("plugins", plugins);
+                }
                 JSONArray messages = new JSONArray();
                 JSONObject sys = new JSONObject();
                 sys.put("role", "system");
