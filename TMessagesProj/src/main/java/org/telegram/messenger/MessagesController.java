@@ -21162,9 +21162,7 @@ public class MessagesController extends BaseController implements NotificationCe
                     org.telegram.messenger.AiManager.searchSong(songQuery, new org.telegram.messenger.AiManager.SongCallback() {
                         @Override
                         public void onResult(String title, String videoId) {
-                            String reply = "🎵 Нашёл!
-**" + title + "**
-https://youtu.be/" + videoId;
+                            String reply = "🎵 Нашёл!\n**" + title + "**\nhttps://youtu.be/" + videoId;
                             AndroidUtilities.runOnUIThread(() -> {
                                 CharSequence[] msg2 = {reply};
                                 java.util.ArrayList<org.telegram.tgnet.TLRPC.MessageEntity> ents =
