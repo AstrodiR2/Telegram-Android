@@ -196,6 +196,9 @@ public class CommandHandler {
         }
         LinkedList<Integer> cached = myMessageIdsCache.get(dialogId);
         sb.append("📦 Cached my message IDs (this chat): ").append(cached != null ? cached.size() : 0).append("\n");
+        sb.append("🤖 AI role: ").append(AiManager.getRoleName(AiManager.getCurrentRole(ApplicationLoader.applicationContext))).append("\n");
+        java.util.LinkedList<String> gcache = groupMessageCache.get(dialogId);
+        sb.append("💬 Group message cache (this chat): ").append(gcache != null ? gcache.size() : 0).append("/20\n");
         sb.append("\n📋 Лог событий:\n");
         synchronized (eventLog) {
             if (eventLog.isEmpty()) {
@@ -231,7 +234,7 @@ public class CommandHandler {
             "🤖 AI\n" +
             "  /ai <вопрос> — спросить AI\n" +
             "  /ai api — настроить AI\n" +
-            "  /ai role — сменить роль\n" +
+            "  /ai role — сменить роль (0=Квас, 1=Assistant, 2=Summarizer, 3=Proofreader, 4=Квас-агент)\n" +
             "  /ai clean — очистить историю\n" +
             "  /ai user — авто-ответ на реплай/упоминание в этом чате\n" +
             "  /ai user off — выключить авто-ответ везде\n" +
