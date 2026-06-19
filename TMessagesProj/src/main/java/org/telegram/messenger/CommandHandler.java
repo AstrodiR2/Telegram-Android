@@ -29,6 +29,7 @@ public class CommandHandler {
     private static final HashSet<Long> aiUserChats = new HashSet<>();
     private static final HashMap<Long, Long> aiUserCooldown = new HashMap<>();
     private static final HashMap<Long, java.util.LinkedList<String>> groupMessageCache = new HashMap<>();
+    private static volatile String lastAiError = null;
     private static final int GROUP_CACHE_SIZE = 20;
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
@@ -199,6 +200,7 @@ public class CommandHandler {
         sb.append("🤖 AI role: ").append(AiManager.getRoleName(AiManager.getCurrentRole(ApplicationLoader.applicationContext))).append("\n");
         java.util.LinkedList<String> gcache = groupMessageCache.get(dialogId);
         sb.append("💬 Group message cache (this chat): ").append(gcache != null ? gcache.size() : 0).append("/20\n");
+        sb.append("❌ Last AI error: ").append(lastAiError != null ? lastAiError : "нет").append("\n");
         sb.append("\n📋 Лог событий:\n");
         synchronized (eventLog) {
             if (eventLog.isEmpty()) {
@@ -465,6 +467,8 @@ public class CommandHandler {
     public static void setWaitingForAutoReply(boolean v) { waitingForAutoReply = v; }
 
     // /ai user feature accessors
+    public static void setLastAiError(String error) { lastAiError = error; }
+
     public static void addGroupMessage(long dialogId, String senderName, String senderUsername, String text) {
         if (text == null || text.isEmpty()) return;
         String entry = senderName + (senderUsername != null && !senderUsername.isEmpty() ? " (@" + senderUsername + ")" : "") + ": " + text;
