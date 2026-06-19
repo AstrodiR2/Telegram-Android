@@ -123,7 +123,11 @@ public class CommandHandler {
 
     private static void sendLocal(long dialogId, String text, MessageObject replyToMsg) {
         AndroidUtilities.runOnUIThread(() -> {
-            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(text, dialogId, replyToMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+            CharSequence[] msg = {text};
+            java.util.ArrayList<org.telegram.tgnet.TLRPC.MessageEntity> entities =
+                org.telegram.messenger.MediaDataController.getInstance(UserConfig.selectedAccount).getEntities(msg, true);
+            String cleanText = msg[0].toString();
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(cleanText, dialogId, replyToMsg, null, null, false, entities, null, null, false, 0, 0, null, false);
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(params);
         });
     }
@@ -216,34 +220,34 @@ public class CommandHandler {
 
     private static void handleHelp(long dialogId) {
         String help =
-            "📋 Команды мода\n" +
-            "\n" +
-            "👤 Утилиты\n" +
-            "  /id — твой Telegram ID\n" +
-            "  /ping — задержка\n" +
-            "\n" +
-            "🧮 Инструменты\n" +
-            "  /calc <выр> — калькулятор\n" +
-            "  /dice — кубик 🎲\n" +
-            "  /coin — монетка 🪙\n" +
-            "  /8ball — магический шар 🎱\n" +
-            "  /remind <сек> <текст> — напоминание ⏰\n" +
-            "\n" +
-            "👻 Режимы\n" +
-            "  /invisible — невидимка\n" +
-            "  /autoreply — автоответчик\n" +
-            "\n" +
-            "🤖 AI\n" +
-            "  /ai <вопрос> — спросить AI\n" +
-            "  /ai api — настроить AI\n" +
-            "  /ai role — сменить роль (0=Квас, 1=Assistant, 2=Summarizer, 3=Proofreader, 4=Квас-агент)\n" +
-            "  /ai clean — очистить историю\n" +
-            "  /ai user — авто-ответ на реплай/упоминание в этом чате\n" +
-            "  /ai user off — выключить авто-ответ везде\n" +
-            "  /exit — выйти из настройки\n" +
-            "\n" +
-            "  /log — состояние мода (диагностика)\n" +
-            "  /help — эта справка";
+                "📋 **Команды мода**\n" +
+                "\n" +
+                "👤 **Утилиты**\n" +
+                "  `/id` — твой Telegram ID\n" +
+                "  `/ping` — задержка\n" +
+                "\n" +
+                "🧮 **Инструменты**\n" +
+                "  `/calc <выр>` — калькулятор\n" +
+                "  `/dice` — кубик 🎲\n" +
+                "  `/coin` — монетка 🪙\n" +
+                "  `/8ball` — магический шар 🎱\n" +
+                "  `/remind <сек> <текст>` — напоминание ⏰\n" +
+                "\n" +
+                "👻 **Режимы**\n" +
+                "  `/invisible` — невидимка\n" +
+                "  `/autoreply` — автоответчик\n" +
+                "\n" +
+                "🤖 **AI**\n" +
+                "  `/ai <вопрос>` — спросить AI\n" +
+                "  `/ai api` — настроить AI\n" +
+                "  `/ai role` — сменить роль (0=Квас, 1=Assistant, 2=Summarizer, 3=Proofreader, 4=Квас-агент)\n" +
+                "  `/ai clean` — очистить историю\n" +
+                "  `/ai user` — авто-ответ на реплай/упоминание в этом чате\n" +
+                "  `/ai user off` — выключить авто-ответ везде\n" +
+                "  `/exit` — выйти из настройки\n" +
+                "\n" +
+                "  `/log` — состояние мода (диагностика)\n" +
+                "  `/help` — эта справка";
         sendLocal(dialogId, help);
     }
 
@@ -403,6 +407,7 @@ public class CommandHandler {
             }
             @Override
             public void onError(String error) {
+                addLog("AI ERROR: " + error);
                 AndroidUtilities.runOnUIThread(() ->
                     Toast.makeText(ctx, error, Toast.LENGTH_LONG).show());
             }
