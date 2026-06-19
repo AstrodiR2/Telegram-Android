@@ -404,8 +404,7 @@ public class CommandHandler {
         if (replyToMsg != null) {
             String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
             if (replyText != null && !replyText.isEmpty()) {
-                question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]
-" + question;
+                question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]\n" + question;
             }
         }
         AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
