@@ -594,6 +594,16 @@ public class CommandHandler {
         return sb.toString().trim();
     }
 
+    public static String getGroupHistory(long dialogId, int limit) {
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null || cache.isEmpty()) return "";
+        java.util.List<String> list = new java.util.ArrayList<>(cache);
+        int start = Math.max(0, list.size() - limit);
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < list.size(); i++) sb.append(list.get(i)).append("\n");
+        return sb.toString().trim();
+    }
+
     public static boolean isAiUserEnabled(long dialogId) {
         return aiUserChats.contains(dialogId);
     }
