@@ -61,6 +61,10 @@ public class AiManager {
         if (groupHistory != null && !groupHistory.isEmpty()) {
             sysExtra.append("\n---\n\nRECENT GROUP MESSAGES (oldest to newest):\n").append(groupHistory);
         }
+        String longMemory = getLongMemory(context);
+        if (!longMemory.isEmpty()) {
+            sysExtra.append("\n\n---\n\nLONG-TERM MEMORY (facts saved by creator):\n- ").append(longMemory);
+        }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." + sysExtra.toString();
         new Thread(() -> {
             try {
@@ -196,6 +200,26 @@ public class AiManager {
     public static void clearHistory(Context context, long dialogId) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .remove(KEY_HISTORY_PREFIX + dialogId).apply();
+    }
+
+    // ===== ДОЛГАЯ ПАМЯТЬ =====
+    private static final String KEY_LONG_MEMORY = "ai_long_memory";
+
+    public static String getLongMemory(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_LONG_MEMORY, "");
+    }
+
+    public static void addLongMemory(Context context, String fact) {
+        String current = getLongMemory(context);
+        String updated = current.isEmpty() ? fact : current + "\n- " + fact;
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_LONG_MEMORY, updated).apply();
+    }
+
+    public static void clearLongMemory(Context context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .remove(KEY_LONG_MEMORY).apply();
     }
 
     public static void ask(Context context, long dialogId, String question, AiCallback callback) {

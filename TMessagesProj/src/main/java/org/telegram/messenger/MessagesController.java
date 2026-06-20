@@ -21190,6 +21190,28 @@ public class MessagesController extends BaseController implements NotificationCe
                     });
                     continue;
                 }
+                if (text != null && text.toLowerCase().contains("запомни ")) {
+                    long fromIdMem = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        fromIdMem = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    if (fromIdMem == 7678968081L) {
+                        String fact = text.substring(text.toLowerCase().indexOf("запомни ") + "запомни ".length()).trim();
+                        if (!fact.isEmpty()) {
+                            AiManager.addLongMemory(ApplicationLoader.applicationContext, fact);
+                            CommandHandler.addLog("🧠 Запомнено: " + fact);
+                            final long fDlgMem = dialogId;
+                            final MessageObject fMsgMem = msg;
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                    "🧠 Запомнил: " + fact,
+                                    fDlgMem, fMsgMem, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                        }
+                    }
+                    continue;
+                }
                 if (text != null && text.toLowerCase().contains("квас найди")) {
                     final String songQuery = text.toLowerCase().replace("квас найди", "").trim();
                     final long fDlg = dialogId;
