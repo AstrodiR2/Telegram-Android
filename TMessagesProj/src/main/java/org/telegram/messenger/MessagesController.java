@@ -21308,7 +21308,8 @@ public class MessagesController extends BaseController implements NotificationCe
                     final long finalFromId4 = fromId4;
                     final String finalName4 = senderName4;
                     final String finalUname4 = senderUsername4;
-                    final String groupHistory4 = CommandHandler.getGroupHistory(fDialogId);
+                    boolean wantsMoreContext = finalText.toLowerCase().contains("прочитай выше") || finalText.toLowerCase().contains("больше контекста") || finalText.toLowerCase().contains("читай выше");
+                    final String groupHistory4 = wantsMoreContext ? CommandHandler.getGroupHistory(fDialogId, 60) : CommandHandler.getGroupHistory(fDialogId);
                     final int triggerMsgId = msg.getId();
                     AiManager.classifyMessage(ApplicationLoader.applicationContext, finalText, tone -> {
                         String[] reactions = CommandHandler.getReactionForTone(tone);

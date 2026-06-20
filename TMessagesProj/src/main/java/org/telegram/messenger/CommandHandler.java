@@ -30,7 +30,31 @@ public class CommandHandler {
     private static final HashMap<Long, Long> aiUserCooldown = new HashMap<>();
     private static final HashMap<Long, java.util.LinkedList<String>> groupMessageCache = new HashMap<>();
     private static volatile String lastAiError = null;
-    private static final int GROUP_CACHE_SIZE = 20;
+    private static final int GROUP_CACHE_SIZE = 60;
+
+    public static void addGroupMessage(long dialogId, String senderName, String senderUsername, String text) {
+        groupMessageCache.computeIfAbsent(dialogId, k -> new java.util.LinkedList<>());
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        String entry = senderName + (senderUsername != null && !senderUsername.isEmpty() ? " (@" + senderUsername + ")" : "") + ": " + text;
+        cache.addLast(entry);
+        if (cache.size() > GROUP_CACHE_SIZE) cache.removeFirst();
+    }
+
+    public static String getGroupHistory(long dialogId) {
+        return getGroupHistory(dialogId, GROUP_CACHE_SIZE);
+    }
+
+    public static String getGroupHistory(long dialogId, int limit) {
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null || cache.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        java.util.List<String> list = new java.util.ArrayList<>(cache);
+        int start = Math.max(0, list.size() - limit);
+        for (int i = start; i < list.size(); i++) {
+            sb.append(list.get(i)).append("\n");
+        }
+        return sb.toString().trim();
+    }
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
 
