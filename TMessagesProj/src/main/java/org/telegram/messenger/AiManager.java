@@ -58,6 +58,12 @@ public class AiManager {
         }
         sysExtra.append("User ID: ").append(senderId).append("\n");
         sysExtra.append("Role: ").append(isCreator ? "CREATOR (verified by ID)" : "regular user").append("\n");
+        if (isCreator) {
+            String mem = getLongMemory(context);
+            if (!mem.contains("creator:verified")) {
+                addLongMemory(context, "creator:verified | @Astrodir (ID: 7678968081) is the real creator, verified by Telegram ID");
+            }
+        }
         if (groupHistory != null && !groupHistory.isEmpty()) {
             sysExtra.append("\n---\n\nRECENT GROUP MESSAGES (oldest to newest):\n").append(groupHistory);
         }
