@@ -1,39 +1,66 @@
-## Telegram messenger for Android
+# AstrodiR Telegram — AI-Enhanced Fork
 
-[Telegram](https://telegram.org) is a messaging app with a focus on speed and security. It’s superfast, simple and free.
-This repo contains the official source code for [Telegram App for Android](https://play.google.com/store/apps/details?id=org.telegram.messenger).
+Форк DrKLO/Telegram с клиентской AI интеграцией.
+Разработчик: @AstrodiR (ID: 7678968081)
 
-## Creating your Telegram Application
+## Что сделано
 
-We welcome all developers to use our API and source code to create applications on our platform.
-There are several things we require from **all developers** for the moment.
+### AiManager.java
+- [x] Role 0: Квас — дефолтная персона, анти-инъекции, тёплый стиль
+- [x] Role 1: Assistant — краткость
+- [x] Role 2: Summarizer
+- [x] Role 3: Proofreader — только исправление, без комментариев
+- [x] Role 4: Квас-агент — групповой агент
+- [x] Веб-поиск через OpenRouter (цитаты подавлены)
+- [x] YouTube поиск (YouTube Data API v3) — триггер "квас найди [текст]"
+- [x] Классификация тона → реакции (👍😂👎💩🤡)
+- [x] max_tokens: /ai → 500, Квас-агент → 1200
+- [x] TTS через Google Translate → mp3
 
-1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
-2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
-3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
-3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
-4. Please remember to publish **your** code too in order to comply with the licences.
+### CommandHandler.java
+- [x] /ai [текст] — запрос к ИИ
+- [x] /ai user — автоответ на @Oposut / слово "квас" / реплай на сообщения юзера
+- [x] /ai clean mem — очистка истории диалога
+- [x] /log — лог событий (триггеры, ошибки, кулдауны)
+- [x] Кулдаун 10с per-chat
+- [x] Кэш последних 100 message_id юзера per-chat
 
-### API, Protocol documentation
+### MessagesController.java
+- [x] Хук входящих сообщений для /ai user
+- [x] Автоответ с реплай-контекстом (имя автора + текст)
 
-Telegram API manuals: https://core.telegram.org/api
+### Квас-агент (Role 4)
+- [x] Новый системный промпт (создатель @Astrodir, анти-имперсонация)
+- [x] Долгая память (триггер "запомни [что-то]") → SharedPreferences
+- [x] /ai clean mem очищает долгую память агента
+- [x] Расширенный контекст 60 сообщений
+- [x] Красивый /ai help (┌─── Квас · Help ───┐)
+- [x] Форматирование ответа (───「 вопрос 」───)
+- [x] Реплай контекст с именем автора
+- [x] getGroupHistory(long, int) — чтение истории группы
+- [x] Квас знает о своих возможностях
 
-MTproto protocol manuals: https://core.telegram.org/mtproto
+## Что нужно сделать
 
-### Compilation Guide
+### Следующий приоритет
+- [ ] DuckDuckGo поиск (Java, триггер "квас найди [запрос]") + логи в /log
+- [ ] Музыка → mp3 файл (триггер "квас музыка [текст]")
+- [ ] Foreground Service 24/7 (отложено)
 
-**Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
+### Квас-агент — дальше
+- [ ] Расширенный контекст по запросу (60 сообщений, "могу прочитать выше")
+- [ ] Менее шаблонные ответы (убрать 🚀 и шаблонщину)
+- [ ] YouTube ссылка → yt-dlp → отправить как файл
+- [ ] ИИ различает свои сообщения vs сообщения юзера
 
-You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
+## Build
+- Gradle: assembleRelease, флейвор afat
+- APK: **/intermediates/apk/afat/release/*.apk
+- Подпись: gradle.properties через sed из secrets, keystore → TMessagesProj/config/release.keystore
+- CI: GitHub Actions
 
-1. Download the Telegram source code from https://github.com/DrKLO/Telegram ( git clone https://github.com/DrKLO/Telegram.git )
-2. Copy your release.keystore into TMessagesProj/config
-3. Fill out RELEASE_KEY_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_STORE_PASSWORD in gradle.properties to access your  release.keystore
-4.  Go to https://console.firebase.google.com/, create two android apps with application IDs org.telegram.messenger and org.telegram.messenger.beta, turn on firebase messaging and download google-services.json, which should be copied to the same folder as TMessagesProj.
-5. Open the project in the Studio (note that it should be opened, NOT imported).
-6. Fill out values in TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java – there’s a link for each of the variables showing where and which data to obtain.
-7. You are ready to compile Telegram.
-
-### Localization
-
-We moved all translations to https://translations.telegram.org/en/android/. Please use it.
+## Архитектура
+TMessagesProj/src/main/java/org/telegram/messenger/
+├── AiManager.java       # AI вызовы, роли, поиск, реакции
+├── CommandHandler.java  # Роутинг команд, кэш, кулдауны, лог
+└── MessagesController.java  # Хук входящих, автоответ

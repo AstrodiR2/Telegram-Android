@@ -21213,28 +21213,25 @@ public class MessagesController extends BaseController implements NotificationCe
                     continue;
                 }
                 if (text != null && text.toLowerCase().contains("квас найди")) {
-                    final String songQuery = text.toLowerCase().replace("квас найди", "").trim();
+                    final String webQuery = text.toLowerCase().replace("квас найди", "").trim();
                     final long fDlg = dialogId;
                     final MessageObject fMsg = msg;
-                    CommandHandler.addLog("🎵 Поиск песни: " + songQuery);
+                    CommandHandler.addLog("🔍 Веб-поиск: " + webQuery);
                     AndroidUtilities.runOnUIThread(() -> {
-                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("🔍 Ищу...", fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("🔍 Ищу в интернете...", fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
                         SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
                     });
-                    org.telegram.messenger.AiManager.searchSong(songQuery, new org.telegram.messenger.AiManager.SongCallback() {
+                    org.telegram.messenger.AiManager.searchWeb(webQuery, new org.telegram.messenger.AiManager.WebSearchCallback() {
                         @Override
-                        public void onResult(String title, String videoId) {
-                            String reply = "🎵 Нашёл!\n**" + title + "**\nhttps://youtu.be/" + videoId;
+                        public void onResult(String result) {
                             AndroidUtilities.runOnUIThread(() -> {
-                                CharSequence[] msg2 = {reply};
-                                java.util.ArrayList<org.telegram.tgnet.TLRPC.MessageEntity> ents =
-                                    org.telegram.messenger.MediaDataController.getInstance(currentAccount).getEntities(msg2, true);
-                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(msg2[0].toString(), fDlg, fMsg, null, null, false, ents, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(result, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
                                 SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
                             });
                         }
                         @Override
                         public void onError(String error) {
+                            CommandHandler.addLog("❌ Веб-поиск ошибка: " + error);
                             AndroidUtilities.runOnUIThread(() -> {
                                 SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + error, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
                                 SendMessagesHelper.getInstance(currentAccount).sendMessage(p);

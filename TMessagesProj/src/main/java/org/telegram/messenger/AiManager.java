@@ -470,4 +470,95 @@ public class AiManager {
             }
         }).start();
     }
+
+
+    // ===== DUCKDUCKGO WEB SEARCH =====
+
+    public interface WebSearchCallback {
+        void onResult(String results);
+        void onError(String error);
+    }
+
+    public static void searchWeb(String query, WebSearchCallback callback) {
+        new Thread(() -> {
+            try {
+                String encoded = java.net.URLEncoder.encode(query, "UTF-8");
+                java.net.URL u = new java.net.URL("https://html.duckduckgo.com/html/?q=" + encoded);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
+                conn.setRequestProperty("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                if (code != 200) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("DuckDuckGo HTTP " + code));
+                    return;
+                }
+                java.io.BufferedReader br = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder html = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) html.append(line);
+                br.close();
+
+                String body = html.toString();
+                StringBuilder results = new StringBuilder();
+                int count = 0;
+
+                java.util.regex.Pattern linkPattern = java.util.regex.Pattern.compile(
+                    "<a[^>]*class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>",
+                    java.util.regex.Pattern.DOTALL);
+                java.util.regex.Pattern snippetPattern = java.util.regex.Pattern.compile(
+                    "<a[^>]*class=\"result__snippet\"[^>]*>(.*?)</a>",
+                    java.util.regex.Pattern.DOTALL);
+
+                java.util.regex.Matcher linkMatcher = linkPattern.matcher(body);
+                java.util.regex.Matcher snippetMatcher = snippetPattern.matcher(body);
+
+                while (linkMatcher.find() && count < 5) {
+                    String rawUrl = linkMatcher.group(1);
+                    String title = linkMatcher.group(2).replaceAll("<[^>]+>", "").trim();
+                    if (rawUrl.contains("uddg=")) {
+                        int uddgIdx = rawUrl.indexOf("uddg=");
+                        rawUrl = rawUrl.substring(uddgIdx + 5);
+                        int ampIdx = rawUrl.indexOf("&");
+                        if (ampIdx > 0) rawUrl = rawUrl.substring(0, ampIdx);
+                        rawUrl = java.net.URLDecoder.decode(rawUrl, "UTF-8");
+                    }
+                    String snippet = "";
+                    if (snippetMatcher.find()) {
+                        snippet = snippetMatcher.group(1).replaceAll("<[^>]+>", "").trim();
+                    }
+                    if (!title.isEmpty()) {
+                        count++;
+                        results.append(count).append(". ").append(title).append("\n");
+                        if (!snippet.isEmpty()) {
+                            results.append("   ").append(snippet).append("\n");
+                        }
+                        results.append("   ").append(rawUrl).append("\n\n");
+                    }
+                }
+
+                if (count == 0) {
+                    java.util.regex.Pattern fallback = java.util.regex.Pattern.compile(
+                        "<a[^>]*class=\"result__url\"[^>]*title=\"([^\"]+)\"",
+                        java.util.regex.Pattern.DOTALL);
+                    java.util.regex.Matcher fbMatcher = fallback.matcher(body);
+                    while (fbMatcher.find() && count < 5) {
+                        count++;
+                        results.append(count).append(". ").append(fbMatcher.group(1)).append("\n");
+                    }
+                }
+
+                final String finalResults = count > 0
+                    ? "\uD83D\uDD0D Результаты по запросу \"" + query + "\":\n\n" + results.toString().trim()
+                    : "\uD83D\uDE15 Ничего не нашёл по запросу \"" + query + "\"";
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalResults));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка поиска: " + e.getMessage()));
+            }
+        }).start();
+    }
+
 }
