@@ -177,6 +177,48 @@ public class CommandHandler {
         });
     }
 
+    public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
+        // Проверяем есть ли блок кода
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\n([\s\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher m = p.matcher(result);
+        if (m.find()) {
+            String lang = m.group(1) != null ? m.group(1).toLowerCase() : "";
+            String code = m.group(2);
+            String ext = (lang.equals("python") || lang.equals("py")) ? ".py" : ".md";
+            String textBefore = result.substring(0, m.start()).trim();
+            String textAfter = result.substring(m.end()).trim();
+            String caption = (textBefore + " " + textAfter).trim();
+            try {
+                java.io.File dir = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Telegram/ai_files");
+                dir.mkdirs();
+                java.io.File file = new java.io.File(dir, "ai_" + System.currentTimeMillis() + ext);
+                try (java.io.FileWriter fw = new java.io.FileWriter(file)) { fw.write(code); }
+                final String finalCaption = caption.isEmpty() ? null : caption;
+                final java.io.File finalFile = file;
+                final String finalExt = ext;
+                AndroidUtilities.runOnUIThread(() -> {
+                    try {
+                        org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
+                        doc.mime_type = finalExt.equals(".py") ? "text/x-python" : "text/markdown";
+                        org.telegram.tgnet.TLRPC.TL_documentAttributeFilename attr = new org.telegram.tgnet.TLRPC.TL_documentAttributeFilename();
+                        attr.file_name = "code" + finalExt;
+                        doc.attributes.add(attr);
+                        SendMessagesHelper.SendMessageParams fp = SendMessagesHelper.SendMessageParams.of(doc, null, finalFile.getAbsolutePath(), dialogId, replyToMsg, null, finalCaption, null, null, null, true, 0, 0, 0, null, null, false);
+                        SendMessagesHelper.getInstance(account).sendMessage(fp);
+                    } catch (Exception e) {
+                        addLog("❌ Файл отправка: " + e.getMessage());
+                        sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
+                    }
+                });
+                return;
+            } catch (Exception e) {
+                addLog("❌ Файл создание: " + e.getMessage());
+            }
+        }
+        // Обычный текст
+        sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
+    }
+
     private static void handleId(long dialogId) {
         long myId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
         sendLocal(dialogId, "🆔 Твой ID: " + myId);
@@ -455,7 +497,7 @@ public class CommandHandler {
         AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
-                sendLocal(dialogId, result, replyToMsg);
+                sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
             }
             @Override
             public void onError(String error) {
