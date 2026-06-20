@@ -516,7 +516,7 @@ public class CommandHandler {
                 r.emoticon = emoji;
                 req.reaction.add(r);
             }
-            org.telegram.messenger.ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
+            org.telegram.tgnet.ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
                 if (response != null) {
                     org.telegram.messenger.MessagesController.getInstance(UserConfig.selectedAccount).processUpdates((org.telegram.tgnet.TLRPC.Updates) response, false);
                 }
