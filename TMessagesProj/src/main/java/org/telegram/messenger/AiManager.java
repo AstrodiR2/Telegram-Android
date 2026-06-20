@@ -393,7 +393,7 @@ public class AiManager {
         new Thread(() -> {
             try {
                 String encoded = java.net.URLEncoder.encode(text, "UTF-8");
-                String url = "https://api.streamelements.com/kappa/v2/speech?voice=Maxim&text=" + encoded;
+                String url = "https://translate.google.com/translate_tts?ie=UTF-8&tl=ru&client=tw-ob&q=" + encoded;
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("User-Agent", "Mozilla/5.0");
