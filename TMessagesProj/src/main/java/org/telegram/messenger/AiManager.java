@@ -367,11 +367,7 @@ public class AiManager {
                 request.addOption("-f", "best[ext=mp4]/best");
                 request.addOption("--max-filesize", "50m");
                 final String[] titleHolder = {null};
-                com.yausername.youtubedl_android.YoutubeDL.getInstance().execute(request, (progress, etaInSeconds, line) -> {
-                    if (titleHolder[0] == null && line.contains("Destination:")) {
-                        titleHolder[0] = line;
-                    }
-                });
+                com.yausername.youtubedl_android.YoutubeDL.getInstance().execute(request, null);
                 java.io.File[] files = dir.listFiles();
                 if (files == null || files.length == 0) {
                     new Handler(Looper.getMainLooper()).post(() -> callback.onError("Файл не найден после скачки"));
