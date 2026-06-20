@@ -21324,12 +21324,12 @@ public class MessagesController extends BaseController implements NotificationCe
                             String rName = replyHeader.reply_from.from_name;
                             String rText = replyHeader.quote != null ? replyHeader.quote.text : null;
                             if (rText != null && !rText.isEmpty()) {
-                                replyContext4 = "[Реплай на сообщение от " + rName + ": \"" + rText + "\"]
+                                replyContext4 = "[Реплай на сообщение от " + rName + ": \"" + rText + "\"]\n";
 ";
                             }
                         } else if (replyHeader.reply_to_msg_id != 0) {
                             String cachedHistory = CommandHandler.getGroupHistory(fDialogId, 60);
-                            replyContext4 = "[Пользователь реплайнул на сообщение ID=" + replyHeader.reply_to_msg_id + "]
+                            replyContext4 = "[Пользователь реплайнул на сообщение ID=" + replyHeader.reply_to_msg_id + "]\n";
 ";
                         }
                     }
