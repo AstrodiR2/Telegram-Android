@@ -31,30 +31,6 @@ public class CommandHandler {
     private static final HashMap<Long, java.util.LinkedList<String>> groupMessageCache = new HashMap<>();
     private static volatile String lastAiError = null;
     private static final int GROUP_CACHE_SIZE = 60;
-
-    public static void addGroupMessage(long dialogId, String senderName, String senderUsername, String text) {
-        groupMessageCache.computeIfAbsent(dialogId, k -> new java.util.LinkedList<>());
-        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
-        String entry = senderName + (senderUsername != null && !senderUsername.isEmpty() ? " (@" + senderUsername + ")" : "") + ": " + text;
-        cache.addLast(entry);
-        if (cache.size() > GROUP_CACHE_SIZE) cache.removeFirst();
-    }
-
-    public static String getGroupHistory(long dialogId) {
-        return getGroupHistory(dialogId, GROUP_CACHE_SIZE);
-    }
-
-    public static String getGroupHistory(long dialogId, int limit) {
-        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
-        if (cache == null || cache.isEmpty()) return "";
-        StringBuilder sb = new StringBuilder();
-        java.util.List<String> list = new java.util.ArrayList<>(cache);
-        int start = Math.max(0, list.size() - limit);
-        for (int i = start; i < list.size(); i++) {
-            sb.append(list.get(i)).append("\n");
-        }
-        return sb.toString().trim();
-    }
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
 
@@ -203,7 +179,7 @@ public class CommandHandler {
 
     public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
         // Проверяем есть ли блок кода
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\\n([\\s\\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\n([\s\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher m = p.matcher(result);
         if (m.find()) {
             String lang = m.group(1) != null ? m.group(1).toLowerCase() : "";
@@ -484,9 +460,27 @@ public class CommandHandler {
         if (arg.trim().equals("clean mem")) {
             AiManager.clearLongMemory(ctx);
             AndroidUtilities.runOnUIThread(() ->
-                Toast.makeText(ctx, "Долгая память очищена", Toast.LENGTH_SHORT).show());
+                Toast.makeText(ctx, "\u0414\u043e\u043b\u0433\u0430\u044f \u043f\u0430\u043c\u044f\u0442\u044c \u043e\u0447\u0438\u0449\u0435\u043d\u0430", Toast.LENGTH_SHORT).show());
             return;
         }
+        if (arg.trim().equals("user")) {
+            boolean nowOff = aiUserChats.contains(dialogId);
+            if (nowOff) {
+                aiUserChats.remove(dialogId);
+            } else {
+                aiUserChats.add(dialogId);
+            }
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, nowOff ? "🤖 AI User выключен в этом чате" : "🤖 AI User включён в этом чате", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (arg.trim().equals("user off")) {
+            aiUserChats.clear();
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "🤖 AI User выключен везде", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        // /ai <вопрос>
         if (arg.trim().isEmpty()) {
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "❌ Формат: /ai <вопрос>", Toast.LENGTH_SHORT).show());
@@ -501,16 +495,7 @@ public class CommandHandler {
         if (replyToMsg != null) {
             String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
             if (replyText != null && !replyText.isEmpty()) {
-                String replyAuthor = "";
-                if (replyToMsg.messageOwner.from_id instanceof org.telegram.tgnet.TLRPC.TL_peerUser) {
-                    long replyFromId = ((org.telegram.tgnet.TLRPC.TL_peerUser) replyToMsg.messageOwner.from_id).user_id;
-                    org.telegram.tgnet.TLRPC.User replyUser = org.telegram.messenger.MessagesController.getInstance(org.telegram.messenger.UserConfig.selectedAccount).getUser(replyFromId);
-                    if (replyUser != null && replyUser.first_name != null) {
-                        replyAuthor = replyUser.first_name + (replyUser.username != null ? " (@" + replyUser.username + ")" : "");
-                    }
-                }
-                question = "[Реплай на сообщение" + (replyAuthor.isEmpty() ? "" : " от " + replyAuthor) + ": \"" + replyText + "\"]
-" + question;
+                question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]\n" + question;
             }
         }
         AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
@@ -520,11 +505,179 @@ public class CommandHandler {
             }
             @Override
             public void onError(String error) {
-                lastAiError = error;
-                addLog("❌ Ошибка AI: " + error);
+                addLog("AI ERROR: " + error);
                 AndroidUtilities.runOnUIThread(() ->
-                    Toast.makeText(ctx, "❌ Ошибка AI: " + error, Toast.LENGTH_LONG).show());
+                    Toast.makeText(ctx, error, Toast.LENGTH_LONG).show());
             }
         });
+    }
+
+    private static void handleExit(long dialogId) {
+        android.content.Context ctx = ApplicationLoader.applicationContext;
+        if (aiWizardStep != AI_WIZARD_NONE) {
+            aiWizardStep = AI_WIZARD_NONE;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            aiWizardDialogId = 0;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ Вышел из режима настройки AI", Toast.LENGTH_SHORT).show());
+        } else {
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ Ты не в режиме настройки", Toast.LENGTH_SHORT).show());
+        }
+    }
+
+    // Вызывается из SendMessagesHelper для перехвата wizard шагов
+    public static boolean handleAiWizardStep(String text, long dialogId) {
+        if (aiWizardStep == AI_WIZARD_NONE) return false;
+        if (text.startsWith("/")) return false;
+        android.content.Context ctx = ApplicationLoader.applicationContext;
+        if (aiWizardStep == AI_WIZARD_URL) {
+            aiWizardUrl = text.trim();
+            aiWizardStep = AI_WIZARD_MODEL;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Модель ИИ:\n(Например gemini-2.5-flash)", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_MODEL) {
+            aiWizardModel = text.trim();
+            aiWizardStep = AI_WIZARD_TOKEN;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Свой API ключ:", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_TOKEN) {
+            String token = text.trim();
+            AiManager.saveSettings(ctx, aiWizardUrl, aiWizardModel, token);
+            aiWizardStep = AI_WIZARD_NONE;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            aiWizardDialogId = 0;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ AI настроен успешно!", Toast.LENGTH_SHORT).show());
+            return true;
+        }
+        return false;
+    }
+
+    public static int getAiWizardStep() { return aiWizardStep; }
+
+    public static boolean isInvisibleMode() { return invisibleMode; }
+    public static boolean isAutoReplyEnabled() { return autoReplyEnabled; }
+    public static String getAutoReplyMessage() { return autoReplyMessage; }
+    public static void setAutoReplyMessage(String msg) { autoReplyMessage = msg; }
+    public static boolean isWaitingForAutoReply() { return waitingForAutoReply; }
+    public static void setWaitingForAutoReply(boolean v) { waitingForAutoReply = v; }
+
+    // /ai user feature accessors
+    public static void setLastAiError(String error) { lastAiError = error; }
+
+    public static void addGroupMessage(long dialogId, String senderName, String senderUsername, String text) {
+        if (text == null || text.isEmpty()) return;
+        String entry = senderName + (senderUsername != null && !senderUsername.isEmpty() ? " (@" + senderUsername + ")" : "") + ": " + text;
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null) {
+            cache = new java.util.LinkedList<>();
+            groupMessageCache.put(dialogId, cache);
+        }
+        cache.addLast(entry);
+        if (cache.size() > GROUP_CACHE_SIZE) cache.removeFirst();
+    }
+
+    public static String getGroupHistory(long dialogId) {
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null || cache.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (String entry : cache) sb.append(entry).append("\n");
+        return sb.toString().trim();
+    }
+
+    public static boolean isAiUserEnabled(long dialogId) {
+        return aiUserChats.contains(dialogId);
+    }
+
+    public static void sendReactionDirect(long dialogId, int msgId, String... emojis) {
+        try {
+            org.telegram.tgnet.TLRPC.TL_messages_sendReaction req = new org.telegram.tgnet.TLRPC.TL_messages_sendReaction();
+            req.peer = org.telegram.messenger.MessagesController.getInstance(UserConfig.selectedAccount).getInputPeer(dialogId);
+            req.msg_id = msgId;
+            req.flags |= 1;
+            for (String emoji : emojis) {
+                org.telegram.tgnet.TLRPC.TL_reactionEmoji r = new org.telegram.tgnet.TLRPC.TL_reactionEmoji();
+                r.emoticon = emoji;
+                req.reaction.add(r);
+            }
+            org.telegram.tgnet.ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
+                if (response != null) {
+                    org.telegram.messenger.MessagesController.getInstance(UserConfig.selectedAccount).processUpdates((org.telegram.tgnet.TLRPC.Updates) response, false);
+                }
+            });
+        } catch (Exception e) {
+            addLog("❌ Реакция ошибка: " + e.getMessage());
+        }
+    }
+
+    public static String[] getReactionForTone(String tone) {
+        if (tone == null) return null;
+        switch (tone) {
+            case "positive": return new String[]{"👍"};
+            case "funny":    return new String[]{"😂"};
+            case "negative": return new String[]{"👎", "💩", "🤡"};
+            default:         return null;
+        }
+    }
+
+    public static void cacheMyMessageId(long dialogId, int messageId) {
+        LinkedList<Integer> list = myMessageIdsCache.get(dialogId);
+        if (list == null) {
+            list = new LinkedList<>();
+            myMessageIdsCache.put(dialogId, list);
+        }
+        list.addLast(messageId);
+        while (list.size() > MAX_CACHED_MESSAGE_IDS) {
+            list.removeFirst();
+        }
+    }
+
+    public static boolean isMyMessageId(long dialogId, int messageId) {
+        LinkedList<Integer> list = myMessageIdsCache.get(dialogId);
+        return list != null && list.contains(messageId);
+    }
+
+    public static boolean canAiUserReply(long dialogId) {
+        Long last = aiUserCooldown.get(dialogId);
+        if (last == null) return true;
+        return System.currentTimeMillis() - last >= AI_USER_COOLDOWN_MS;
+    }
+
+    public static long getCooldownLeft(long dialogId) {
+        Long last = aiUserCooldown.get(dialogId);
+        if (last == null) return 0;
+        return Math.max(0, AI_USER_COOLDOWN_MS - (System.currentTimeMillis() - last));
+    }
+
+    public static void markAiUserReplied(long dialogId) {
+        aiUserCooldown.put(dialogId, System.currentTimeMillis());
+    }
+
+    private static boolean myMessageObserverRegistered = false;
+
+    public static void ensureMyMessageObserverRegistered() {
+        if (myMessageObserverRegistered) return;
+        myMessageObserverRegistered = true;
+        NotificationCenter.getInstance(UserConfig.selectedAccount).addObserver(new NotificationCenter.NotificationCenterDelegate() {
+            @Override
+            public void didReceivedNotification(int id, int account, Object... args) {
+                if (id == NotificationCenter.messageReceivedByServer) {
+                    try {
+                        Integer newMsgId = (Integer) args[1];
+                        Long did = (Long) args[3];
+                        if (newMsgId != null && did != null) {
+                            cacheMyMessageId(did, newMsgId);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }, NotificationCenter.messageReceivedByServer);
     }
 }
