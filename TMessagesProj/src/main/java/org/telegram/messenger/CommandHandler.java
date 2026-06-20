@@ -179,7 +179,7 @@ public class CommandHandler {
 
     public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
         // Проверяем есть ли блок кода
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\n([\s\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\\n([\\s\\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher m = p.matcher(result);
         if (m.find()) {
             String lang = m.group(1) != null ? m.group(1).toLowerCase() : "";
