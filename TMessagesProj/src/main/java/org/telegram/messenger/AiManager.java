@@ -320,6 +320,43 @@ public class AiManager {
         }).start();
     }
 
+    public interface VideoCallback {
+        void onResult(java.io.File file, String title);
+        void onError(String error);
+    }
+
+    public static void downloadVideo(android.content.Context context, String url, VideoCallback callback) {
+        new Thread(() -> {
+            try {
+                java.io.File dir = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Telegram/ai_videos");
+                dir.mkdirs();
+                com.yausername.youtubedl_android.YoutubeDLRequest request = new com.yausername.youtubedl_android.YoutubeDLRequest(url);
+                request.addOption("-o", dir.getAbsolutePath() + "/%(title)s.%(ext)s");
+                request.addOption("--no-playlist");
+                request.addOption("-f", "best[ext=mp4]/best");
+                request.addOption("--max-filesize", "50m");
+                final String[] titleHolder = {null};
+                com.yausername.youtubedl_android.YoutubeDL.getInstance().execute(request, (progress, etaInSeconds, line) -> {
+                    if (titleHolder[0] == null && line.contains("Destination:")) {
+                        titleHolder[0] = line;
+                    }
+                });
+                java.io.File[] files = dir.listFiles();
+                if (files == null || files.length == 0) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("Файл не найден после скачки"));
+                    return;
+                }
+                java.io.File latest = files[0];
+                for (java.io.File f : files) { if (f.lastModified() > latest.lastModified()) latest = f; }
+                final java.io.File finalFile = latest;
+                final String finalTitle = latest.getName();
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalFile, finalTitle));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка скачки: " + e.getMessage()));
+            }
+        }).start();
+    }
+
     public interface TtsCallback {
         void onResult(java.io.File file);
         void onError(String error);

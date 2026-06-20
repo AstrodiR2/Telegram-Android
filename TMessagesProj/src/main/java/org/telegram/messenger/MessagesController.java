@@ -21150,6 +21150,46 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (msg.isOut()) continue;
                 boolean triggered = false;
                 String text = msg.messageOwner != null ? msg.messageOwner.message : null;
+                // Видео ссылка
+                if (text != null && (text.contains("youtube.com/watch") || text.contains("youtu.be/")
+                        || text.contains("tiktok.com") || text.contains("instagram.com/reel"))) {
+                    final String videoUrl = text.trim();
+                    final long fDlg2 = dialogId;
+                    final MessageObject fMsg2 = msg;
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("⬇️ Скачиваю...", fDlg2, fMsg2, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                    });
+                    AiManager.downloadVideo(ApplicationLoader.applicationContext, videoUrl, new AiManager.VideoCallback() {
+                        @Override
+                        public void onResult(java.io.File file, String title) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                try {
+                                    org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
+                                    doc.mime_type = "video/mp4";
+                                    org.telegram.tgnet.TLRPC.TL_documentAttributeFilename attr = new org.telegram.tgnet.TLRPC.TL_documentAttributeFilename();
+                                    attr.file_name = title;
+                                    doc.attributes.add(attr);
+                                    org.telegram.tgnet.TLRPC.TL_documentAttributeVideo vid = new org.telegram.tgnet.TLRPC.TL_documentAttributeVideo();
+                                    doc.attributes.add(vid);
+                                    SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(doc, null, file.getAbsolutePath(), fDlg2, fMsg2, null, "🎬 " + title, null, null, null, true, 0, 0, 0, null, null, false);
+                                    SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                                } catch (Exception e) {
+                                    CommandHandler.addLog("❌ Видео отправка: " + e.getMessage());
+                                }
+                            });
+                        }
+                        @Override
+                        public void onError(String error) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + error, fDlg2, fMsg2, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                            CommandHandler.addLog("❌ Видео: " + error);
+                        }
+                    });
+                    continue;
+                }
                 if (text != null && text.toLowerCase().contains("квас найди")) {
                     final String songQuery = text.toLowerCase().replace("квас найди", "").trim();
                     final long fDlg = dialogId;

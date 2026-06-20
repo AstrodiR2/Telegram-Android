@@ -288,6 +288,7 @@ public class ApplicationLoader extends Application {
         }
 
         super.onCreate();
+        try { com.yausername.youtubedl_android.YoutubeDL.getInstance().init(this); } catch (Exception e) { android.util.Log.e("TTS", "YoutubeDL init failed: " + e.getMessage()); }
 
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("app start time = " + (startTime = SystemClock.elapsedRealtime()));
