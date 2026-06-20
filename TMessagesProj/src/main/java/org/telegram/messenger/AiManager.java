@@ -229,6 +229,11 @@ public class AiManager {
     }
 
     public static void ask(Context context, long dialogId, String question, AiCallback callback) {
+        try {
+            java.io.FileWriter dbg = new java.io.FileWriter("/sdcard/ai_debug.txt", true);
+            dbg.write("ask() called, dialogId=" + dialogId + " question=" + question + "\n");
+            dbg.close();
+        } catch (Exception ignored) {}
         String apiUrl = getUrl(context);
         String model = getModel(context);
         String token = getToken(context);
