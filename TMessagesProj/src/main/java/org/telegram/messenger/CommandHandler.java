@@ -203,7 +203,7 @@ public class CommandHandler {
 
     public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
         // Проверяем есть ли блок кода
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\n([\s\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\\n([\\s\\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher m = p.matcher(result);
         if (m.find()) {
             String lang = m.group(1) != null ? m.group(1).toLowerCase() : "";
@@ -489,3 +489,35 @@ public class CommandHandler {
                 Toast.makeText(ctx, "Долгая память очищена", Toast.LENGTH_SHORT).show());
             return;
         }
+        if (arg.trim().isEmpty()) {
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ Формат: /ai <вопрос>", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (!AiManager.isConfigured(ctx)) {
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ AI не настроен. Используй /ai api", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        String question = arg.trim();
+        if (replyToMsg != null) {
+            String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
+            if (replyText != null && !replyText.isEmpty()) {
+                question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]\n" + question;
+            }
+        }
+        AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
+            @Override
+            public void onResult(String result) {
+                sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
+            }
+            @Override
+            public void onError(String error) {
+                lastAiError = error;
+                addLog("❌ Ошибка AI: " + error);
+                AndroidUtilities.runOnUIThread(() ->
+                    Toast.makeText(ctx, "❌ Ошибка AI: " + error, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+}
