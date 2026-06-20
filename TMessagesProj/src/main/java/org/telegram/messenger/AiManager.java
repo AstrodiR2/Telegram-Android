@@ -320,6 +320,40 @@ public class AiManager {
         }).start();
     }
 
+    public interface TtsCallback {
+        void onResult(java.io.File file);
+        void onError(String error);
+    }
+
+    public static void textToSpeech(String text, TtsCallback callback) {
+        new Thread(() -> {
+            try {
+                String encoded = java.net.URLEncoder.encode(text, "UTF-8");
+                String url = "https://api.streamelements.com/kappa/v2/speech?voice=Maxim&text=" + encoded;
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                int code = conn.getResponseCode();
+                if (code != 200) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("TTS ошибка: " + code));
+                    return;
+                }
+                java.io.File dir = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Telegram/tts");
+                dir.mkdirs();
+                java.io.File out = new java.io.File(dir, "tts_" + System.currentTimeMillis() + ".mp3");
+                try (java.io.InputStream is = conn.getInputStream();
+                     java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = is.read(buf)) != -1) fos.write(buf, 0, n);
+                }
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(out));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("TTS: " + e.getMessage()));
+            }
+        }).start();
+    }
+
     public interface ClassifyCallback {
         void onResult(String tone); // "positive", "funny", "negative", "neutral"
     }

@@ -92,6 +92,9 @@ public class CommandHandler {
             case "/log":
                 handleLog(dialogId);
                 return true;
+            case "/tts":
+                handleTts(arg, dialogId, replyToMsg);
+                return true;
             case "/ghostping":
                 return true;
             case "/autoreply":
@@ -129,6 +132,48 @@ public class CommandHandler {
             String cleanText = msg[0].toString();
             SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(cleanText, dialogId, replyToMsg, null, null, false, entities, null, null, false, 0, 0, null, false);
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(params);
+        });
+    }
+
+    private static long ttsCooldown = 0;
+
+    private static void handleTts(String arg, long dialogId, MessageObject replyToMsg) {
+        long now = System.currentTimeMillis();
+        if (now - ttsCooldown < 10000) return;
+        ttsCooldown = now;
+
+        String text = arg.trim();
+        if (text.isEmpty() && replyToMsg != null && replyToMsg.messageOwner != null) {
+            text = replyToMsg.messageOwner.message;
+        }
+        if (text == null || text.isEmpty()) {
+            sendLocal(dialogId, "❌ Формат: /tts [текст] или реплай на сообщение");
+            return;
+        }
+        final String finalText = text;
+        AiManager.textToSpeech(finalText, new AiManager.TtsCallback() {
+            @Override
+            public void onResult(java.io.File file) {
+                AndroidUtilities.runOnUIThread(() -> {
+                    try {
+                        org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
+                        doc.mime_type = "audio/mpeg";
+                        doc.file_name = "tts.mp3";
+                        org.telegram.tgnet.TLRPC.TL_documentAttributeAudio audio = new org.telegram.tgnet.TLRPC.TL_documentAttributeAudio();
+                        audio.voice = true;
+                        doc.attributes.add(audio);
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(doc, null, file.getAbsolutePath(), dialogId, replyToMsg, null, null, null, null, null, true, 0, 0, 0, null, null, false);
+                        SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(p);
+                    } catch (Exception e) {
+                        addLog("❌ TTS отправка: " + e.getMessage());
+                    }
+                });
+            }
+            @Override
+            public void onError(String error) {
+                addLog("❌ TTS: " + error);
+                sendLocal(dialogId, "❌ " + error);
+            }
         });
     }
 
