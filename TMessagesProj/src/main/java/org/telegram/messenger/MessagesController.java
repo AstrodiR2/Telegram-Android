@@ -21317,7 +21317,24 @@ public class MessagesController extends BaseController implements NotificationCe
                             CommandHandler.sendReactionDirect(fDialogId, triggerMsgId, reactions);
                         }
                     });
-                    AiManager.ask(ApplicationLoader.applicationContext, fDialogId, finalText, finalName4, finalUname4, finalFromId4, groupHistory4, new AiManager.AiCallback() {
+                    String replyContext4 = "";
+                    if (msg.messageOwner.reply_to instanceof TLRPC.TL_messageReplyHeader) {
+                        TLRPC.TL_messageReplyHeader replyHeader = (TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to;
+                        if (replyHeader.reply_from != null && replyHeader.reply_from.from_name != null) {
+                            String rName = replyHeader.reply_from.from_name;
+                            String rText = replyHeader.quote != null ? replyHeader.quote.text : null;
+                            if (rText != null && !rText.isEmpty()) {
+                                replyContext4 = "[Реплай на сообщение от " + rName + ": \"" + rText + "\"]
+";
+                            }
+                        } else if (replyHeader.reply_to_msg_id != 0) {
+                            String cachedHistory = CommandHandler.getGroupHistory(fDialogId, 60);
+                            replyContext4 = "[Пользователь реплайнул на сообщение ID=" + replyHeader.reply_to_msg_id + "]
+";
+                        }
+                    }
+                    final String finalTextWithReply4 = replyContext4 + finalText;
+                    AiManager.ask(ApplicationLoader.applicationContext, fDialogId, finalTextWithReply4, finalName4, finalUname4, finalFromId4, groupHistory4, new AiManager.AiCallback() {
                         @Override
                         public void onResult(String result) {
                             CommandHandler.sendAiResult(fDialogId, result, triggerMsg, currentAccount);

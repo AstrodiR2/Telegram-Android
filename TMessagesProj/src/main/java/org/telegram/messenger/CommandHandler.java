@@ -503,7 +503,16 @@ public class CommandHandler {
         if (replyToMsg != null) {
             String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
             if (replyText != null && !replyText.isEmpty()) {
-                question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]\n" + question;
+                String replyAuthor = "";
+                if (replyToMsg.messageOwner.from_id instanceof org.telegram.tgnet.TLRPC.TL_peerUser) {
+                    long replyFromId = ((org.telegram.tgnet.TLRPC.TL_peerUser) replyToMsg.messageOwner.from_id).user_id;
+                    org.telegram.tgnet.TLRPC.User replyUser = org.telegram.messenger.MessagesController.getInstance(org.telegram.messenger.UserConfig.selectedAccount).getUser(replyFromId);
+                    if (replyUser != null && replyUser.first_name != null) {
+                        replyAuthor = replyUser.first_name + (replyUser.username != null ? " (@" + replyUser.username + ")" : "");
+                    }
+                }
+                question = "[Реплай на сообщение" + (replyAuthor.isEmpty() ? "" : " от " + replyAuthor) + ": \"" + replyText + "\"]
+" + question;
             }
         }
         AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
