@@ -491,7 +491,7 @@ public class CommandHandler {
                 Toast.makeText(ctx, "❌ AI не настроен. Используй /ai api", Toast.LENGTH_SHORT).show());
             return;
         }
-        String question = arg.trim();
+        final String question = arg.trim();
         if (replyToMsg != null) {
             String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
             if (replyText != null && !replyText.isEmpty()) {
