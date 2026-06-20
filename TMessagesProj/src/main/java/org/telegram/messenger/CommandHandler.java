@@ -501,7 +501,9 @@ public class CommandHandler {
         AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
-                sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
+                String q = question.length() > 40 ? question.substring(0, 40) + "..." : question;
+                String formatted = "───「 " + q + " 」───\n" + result;
+                sendAiResult(dialogId, formatted, replyToMsg, UserConfig.selectedAccount);
             }
             @Override
             public void onError(String error) {
