@@ -21322,15 +21322,13 @@ public class MessagesController extends BaseController implements NotificationCe
                         TLRPC.TL_messageReplyHeader replyHeader = (TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to;
                         if (replyHeader.reply_from != null && replyHeader.reply_from.from_name != null) {
                             String rName = replyHeader.reply_from.from_name;
-                            String rText = replyHeader.quote != null ? replyHeader.quote.text : null;
+                            String rText = replyHeader.quote_text;
                             if (rText != null && !rText.isEmpty()) {
                                 replyContext4 = "[Реплай на сообщение от " + rName + ": \"" + rText + "\"]\n";
-";
                             }
                         } else if (replyHeader.reply_to_msg_id != 0) {
                             String cachedHistory = CommandHandler.getGroupHistory(fDialogId, 60);
                             replyContext4 = "[Пользователь реплайнул на сообщение ID=" + replyHeader.reply_to_msg_id + "]\n";
-";
                         }
                     }
                     final String finalTextWithReply4 = replyContext4 + finalText;
