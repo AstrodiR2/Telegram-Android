@@ -98,7 +98,7 @@ public class AiManager {
                 uMsg.put("content", question);
                 msgs.put(uMsg);
                 body.put("messages", msgs);
-                body.put("max_tokens", 500);
+                body.put("max_tokens", 1200);
                 byte[] input = body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 java.io.OutputStream os = conn.getOutputStream();
                 os.write(input);
@@ -271,7 +271,7 @@ public class AiManager {
                 user.put("content", question);
                 messages.put(user);
                 body.put("messages", messages);
-		body.put("max_tokens", 500);
+		body.put("max_tokens", 1200);
 
                 byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
                 OutputStream os = conn.getOutputStream();
