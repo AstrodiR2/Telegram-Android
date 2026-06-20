@@ -498,10 +498,11 @@ public class CommandHandler {
                 question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]\n" + question;
             }
         }
-        AiManager.ask(ctx, dialogId, question, new AiManager.AiCallback() {
+        final String finalQuestion = question;
+                AiManager.ask(ctx, dialogId, finalQuestion, new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
-                String q = question.length() > 40 ? question.substring(0, 40) + "..." : question;
+                String q = finalQuestion.length() > 40 ? finalQuestion.substring(0, 40) + "..." : finalQuestion;
                 String formatted = "───「 " + q + " 」───\n" + result;
                 sendAiResult(dialogId, formatted, replyToMsg, UserConfig.selectedAccount);
             }
