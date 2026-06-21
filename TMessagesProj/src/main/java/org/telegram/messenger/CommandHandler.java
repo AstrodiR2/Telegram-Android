@@ -242,6 +242,7 @@ public class CommandHandler {
                 final String finalCaption = caption.isEmpty() ? null : caption;
                 final java.io.File finalFile = file;
                 final String finalExt = ext;
+                final String resultForLambda = result;
                 AndroidUtilities.runOnUIThread(() -> {
                     try {
                         org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
@@ -253,7 +254,7 @@ public class CommandHandler {
                         SendMessagesHelper.getInstance(account).sendMessage(fp);
                     } catch (Exception e) {
                         addLog("❌ Файл отправка: " + e.getMessage());
-                        sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
+                        sendAiResult(dialogId, resultForLambda, replyToMsg, UserConfig.selectedAccount);
                     }
                 });
                 return;
