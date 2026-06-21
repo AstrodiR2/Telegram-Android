@@ -21229,7 +21229,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         @Override
                         public void onResult(String title, String videoId) {
                             String url = "https://youtu.be/" + videoId;
-                            AiManager.downloadVideo(ApplicationLoader.applicationContext, url, new AiManager.VideoCallback() {
+                            AiManager.downloadAudio(ApplicationLoader.applicationContext, url, new AiManager.AudioCallback() {
                                 @Override
                                 public void onResult(java.io.File file, String fileTitle) {
                                     AndroidUtilities.runOnUIThread(() -> {
@@ -21268,7 +21268,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             CommandHandler.addLog("❌ Музыка поиск: " + error);
                         }
                     });
-                    triggered = false;
+                    triggered = true;
                     continue;
                 }
                 if (text != null && textLow.contains("квас найди")) {

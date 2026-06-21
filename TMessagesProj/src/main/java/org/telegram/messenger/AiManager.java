@@ -391,6 +391,40 @@ public class AiManager {
         }).start();
     }
 
+
+    public interface AudioCallback {
+        void onResult(java.io.File file, String title);
+        void onError(String error);
+    }
+
+    public static void downloadAudio(android.content.Context context, String url, AudioCallback callback) {
+        new Thread(() -> {
+            try {
+                java.io.File dir = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Telegram/ai_music");
+                dir.mkdirs();
+                com.yausername.youtubedl_android.YoutubeDLRequest request = new com.yausername.youtubedl_android.YoutubeDLRequest(url);
+                request.addOption("-o", dir.getAbsolutePath() + "/%(title)s.%(ext)s");
+                request.addOption("--no-playlist");
+                request.addOption("--extract-audio");
+                request.addOption("--audio-format", "mp3");
+                request.addOption("--audio-quality", "0");
+                request.addOption("--max-filesize", "50m");
+                com.yausername.youtubedl_android.YoutubeDL.getInstance().execute(request, "yt_audio");
+                java.io.File[] files = dir.listFiles();
+                if (files == null || files.length == 0) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("Аудио не найдено после скачки"));
+                    return;
+                }
+                java.io.File latest = files[0];
+                for (java.io.File f : files) { if (f.lastModified() > latest.lastModified()) latest = f; }
+                final java.io.File finalFile = latest;
+                final String finalTitle = latest.getName().replaceFirst("\.[^.]+$", "");
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalFile, finalTitle));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка скачки аудио: " + e.getMessage()));
+            }
+        }).start();
+    }
     public interface TtsCallback {
         void onResult(java.io.File file);
         void onError(String error);

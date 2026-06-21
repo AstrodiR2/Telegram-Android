@@ -491,7 +491,13 @@ public class CommandHandler {
 
     private static void handleAi(String arg, long dialogId, MessageObject replyToMsg) {
         android.content.Context ctx = ApplicationLoader.applicationContext;
-        if (arg.trim().equals("api")) {
+        if (ctx == null) {
+            addLog("❌ handleAi: ctx is null");
+            return;
+        }
+        if (arg == null) arg = "";
+        String argTrimmed = arg.trim();
+        if (argTrimmed.equals("api")) {
             aiWizardStep = AI_WIZARD_URL;
             aiWizardDialogId = dialogId;
             aiWizardUrl = "";
@@ -500,25 +506,25 @@ public class CommandHandler {
                 Toast.makeText(ctx, "Отправьте URL провайдера:\n(Например https://generativelanguage.googleapis.com/v1beta)", Toast.LENGTH_LONG).show());
             return;
         }
-        if (arg.trim().equals("role")) {
+        if (argTrimmed.equals("role")) {
             int newRole = AiManager.nextRole(ctx);
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "Роль: " + AiManager.getRoleName(newRole), Toast.LENGTH_SHORT).show());
             return;
         }
-        if (arg.trim().equals("clean")) {
+        if (argTrimmed.equals("clean")) {
             AiManager.clearHistory(ctx, dialogId);
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "🧹 История очищена", Toast.LENGTH_SHORT).show());
             return;
         }
-        if (arg.trim().equals("clean mem")) {
+        if (argTrimmed.equals("clean mem")) {
             AiManager.clearLongMemory(ctx);
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "\u0414\u043e\u043b\u0433\u0430\u044f \u043f\u0430\u043c\u044f\u0442\u044c \u043e\u0447\u0438\u0449\u0435\u043d\u0430", Toast.LENGTH_SHORT).show());
             return;
         }
-        if (arg.trim().equals("user")) {
+        if (argTrimmed.equals("user")) {
             boolean nowOff = aiUserChats.contains(dialogId);
             if (nowOff) {
                 aiUserChats.remove(dialogId);
@@ -529,14 +535,14 @@ public class CommandHandler {
                 Toast.makeText(ctx, nowOff ? "🤖 AI User выключен в этом чате" : "🤖 AI User включён в этом чате", Toast.LENGTH_SHORT).show());
             return;
         }
-        if (arg.trim().equals("user off")) {
+        if (argTrimmed.equals("user off")) {
             aiUserChats.clear();
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "🤖 AI User выключен везде", Toast.LENGTH_SHORT).show());
             return;
         }
         // /ai <вопрос>
-        if (arg.trim().isEmpty()) {
+        if (argTrimmed.isEmpty()) {
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "❌ Формат: /ai <вопрос>", Toast.LENGTH_SHORT).show());
             return;
@@ -546,7 +552,7 @@ public class CommandHandler {
                 Toast.makeText(ctx, "❌ AI не настроен. Используй /ai api", Toast.LENGTH_SHORT).show());
             return;
         }
-        String question = arg.trim();
+        String question = argTrimmed;
         if (replyToMsg != null) {
             String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
             if (replyText != null && !replyText.isEmpty()) {
@@ -562,6 +568,7 @@ public class CommandHandler {
                 AiManager.ask(ctx, dialogId, finalQuestion, new AiManager.AiCallback() {
             @Override
             public void onResult(String result) {
+                if (result == null) result = "(пустой ответ)";
                 String q = finalQuestion.length() > 40 ? finalQuestion.substring(0, 40) + "..." : finalQuestion;
                 String formatted = "───「 " + q + " 」───\n" + result;
                 sendAiResult(dialogId, formatted, replyToMsg, UserConfig.selectedAccount);
@@ -569,8 +576,8 @@ public class CommandHandler {
             @Override
             public void onError(String error) {
                 addLog("AI ERROR: " + error);
-                AndroidUtilities.runOnUIThread(() ->
-                    Toast.makeText(ctx, error, Toast.LENGTH_LONG).show());
+                if (error == null) error = "Неизвестная ошибка";
+                sendLocal(dialogId, "❌ " + error);
             }
         });
     }
