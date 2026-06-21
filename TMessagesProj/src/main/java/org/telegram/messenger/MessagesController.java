@@ -21212,7 +21212,66 @@ public class MessagesController extends BaseController implements NotificationCe
                     }
                     continue;
                 }
-                if (text != null && text.toLowerCase().contains("квас найди")) {
+                String textLow = text != null ? text.toLowerCase() : "";
+                if (text != null && (textLow.contains("квас музыка") || textLow.contains("квас музыку") || textLow.contains("квас песня") || textLow.contains("квас песню"))) {
+                    String musicQuery = textLow
+                        .replace("квас музыка", "").replace("квас музыку", "")
+                        .replace("квас песня", "").replace("квас песню", "").trim();
+                    final String fMusicQuery = musicQuery;
+                    final long fDlgM = dialogId;
+                    final MessageObject fMsgM = msg;
+                    CommandHandler.addLog("🎵 Поиск музыки: " + fMusicQuery);
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("🎵 Ищу песню...", fDlgM, fMsgM, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                    });
+                    AiManager.searchSong(fMusicQuery, new AiManager.SongCallback() {
+                        @Override
+                        public void onResult(String title, String videoId) {
+                            String url = "https://youtu.be/" + videoId;
+                            AiManager.downloadVideo(ApplicationLoader.applicationContext, url, new AiManager.VideoCallback() {
+                                @Override
+                                public void onResult(java.io.File file, String fileTitle) {
+                                    AndroidUtilities.runOnUIThread(() -> {
+                                        try {
+                                            org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
+                                            doc.mime_type = "audio/mpeg";
+                                            org.telegram.tgnet.TLRPC.TL_documentAttributeFilename attr = new org.telegram.tgnet.TLRPC.TL_documentAttributeFilename();
+                                            attr.file_name = title + ".mp3";
+                                            doc.attributes.add(attr);
+                                            org.telegram.tgnet.TLRPC.TL_documentAttributeAudio audio = new org.telegram.tgnet.TLRPC.TL_documentAttributeAudio();
+                                            audio.title = title;
+                                            doc.attributes.add(audio);
+                                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(doc, null, file.getAbsolutePath(), fDlgM, fMsgM, null, "🎵 " + title, null, null, null, true, 0, 0, 0, null, null, false);
+                                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                                        } catch (Exception e) {
+                                            CommandHandler.addLog("❌ Музыка отправка: " + e.getMessage());
+                                        }
+                                    });
+                                }
+                                @Override
+                                public void onError(String error) {
+                                    AndroidUtilities.runOnUIThread(() -> {
+                                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 Не смог скачать: " + error, fDlgM, fMsgM, null, null, false, null, null, null, false, 0, 0, null, false);
+                                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                                    });
+                                    CommandHandler.addLog("❌ Музыка скачка: " + error);
+                                }
+                            });
+                        }
+                        @Override
+                        public void onError(String error) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + error, fDlgM, fMsgM, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                            CommandHandler.addLog("❌ Музыка поиск: " + error);
+                        }
+                    });
+                    triggered = false;
+                    continue;
+                }
+                if (text != null && textLow.contains("квас найди")) {
                     final String webQuery = text.toLowerCase().replace("квас найди", "").trim();
                     final long fDlg = dialogId;
                     final MessageObject fMsg = msg;
