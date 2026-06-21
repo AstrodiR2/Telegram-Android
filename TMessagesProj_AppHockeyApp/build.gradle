@@ -1,9 +1,9 @@
-plugins {
-    id 'com.android.application'
-    id 'com.google.gms.google-services'
-    id 'com.google.firebase.crashlytics'
-}
-
+TMessagesProj_AppHuawei/build.gradleplugins { id 
+    'com.android.application' id 
+    'com.google.gms.google-services' id 
+    'com.google.firebase.crashlytics'
+TMessagesProj_AppStandalone/build.gradle}
+TMessagesProj_AppTests/build.gradle
 repositories {
     mavenCentral()
     google()
@@ -118,7 +118,7 @@ android {
     productFlavors {
         bundleAfat {
             ndk {
-                abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+                abiFilters "arm64-v8a"
             }
             ext {
                 abiVersionCode = 1
