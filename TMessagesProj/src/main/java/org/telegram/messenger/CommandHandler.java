@@ -264,7 +264,11 @@ public class CommandHandler {
         // Обычный текст
         final String finalResult = result;
         AndroidUtilities.runOnUIThread(() -> {
-            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(finalResult, dialogId, replyToMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+            CharSequence[] msg = {finalResult};
+            java.util.ArrayList<org.telegram.tgnet.TLRPC.MessageEntity> entities =
+                org.telegram.messenger.MediaDataController.getInstance(UserConfig.selectedAccount).getEntities(msg, true);
+            String cleanText = msg[0].toString();
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(cleanText, dialogId, replyToMsg, null, null, false, entities, null, null, false, 0, 0, null, false);
             SendMessagesHelper.getInstance(account).sendMessage(params);
         });
     }
