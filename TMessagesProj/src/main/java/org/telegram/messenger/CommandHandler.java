@@ -198,7 +198,7 @@ public class CommandHandler {
         if (adEnabled && aiResponseCount % AD_EVERY_N == 0) {
             result = result + AD_TEXT;
         }
-        java.util.regex.Matcher rm = java.util.regex.Pattern.compile("\[REACTION:([^\]]+)\]").matcher(result);
+        java.util.regex.Matcher rm = java.util.regex.Pattern.compile("\\[REACTION:([^\\]]+)\\]").matcher(result);
         if (rm.find()) {
             String emojis = rm.group(1).trim();
             java.util.List<String> emojiList = new java.util.ArrayList<>();
