@@ -34,6 +34,7 @@ public class CommandHandler {
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
     private static int aiResponseCount = 0;
+    private static boolean adEnabled = false;
     private static final String AD_TEXT = "\n\n💡 API для GPT, Claude, DeepSeek и других моделей: @imbekapi_bot";
     private static final int AD_EVERY_N = 5;
 
@@ -114,6 +115,12 @@ public class CommandHandler {
             case "/ai":
                 handleAi(arg, dialogId, replyToMsg);
                 return true;
+            case "/ad":
+                adEnabled = !adEnabled;
+                final boolean adNowOn = adEnabled;
+                AndroidUtilities.runOnUIThread(() ->
+                    Toast.makeText(ApplicationLoader.applicationContext, adNowOn ? "📢 Реклама включена" : "🔇 Реклама выключена", Toast.LENGTH_SHORT).show());
+                return true;
             case "/exit":
                 handleExit(dialogId);
                 return true;
@@ -187,7 +194,7 @@ public class CommandHandler {
 
     public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
         aiResponseCount++;
-        if (aiResponseCount % AD_EVERY_N == 0) {
+        if (adEnabled && aiResponseCount % AD_EVERY_N == 0) {
             result = result + AD_TEXT;
         }
         java.util.regex.Matcher rm = java.util.regex.Pattern.compile("\[REACTION:([^\]]+)\]").matcher(result);
