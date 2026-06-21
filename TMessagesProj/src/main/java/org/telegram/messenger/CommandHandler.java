@@ -33,6 +33,9 @@ public class CommandHandler {
     private static final int GROUP_CACHE_SIZE = 60;
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
+    private static int aiResponseCount = 0;
+    private static final String AD_TEXT = "\n\n💡 API для GPT, Claude, DeepSeek и других моделей: @imbekapi_bot";
+    private static final int AD_EVERY_N = 5;
 
     // Event log buffer
     private static final LinkedList<String> eventLog = new LinkedList<>();
@@ -183,6 +186,10 @@ public class CommandHandler {
     }
 
     public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
+        aiResponseCount++;
+        if (aiResponseCount % AD_EVERY_N == 0) {
+            result = result + AD_TEXT;
+        }
         // Проверяем есть ли блок кода
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\\n([\\s\\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher m = p.matcher(result);
