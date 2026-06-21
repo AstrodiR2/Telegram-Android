@@ -221,7 +221,10 @@ public class CommandHandler {
             }
         }
         // Обычный текст
-        sendAiResult(dialogId, result, replyToMsg, UserConfig.selectedAccount);
+        AndroidUtilities.runOnUIThread(() -> {
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(result, dialogId, replyToMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+            SendMessagesHelper.getInstance(account).sendMessage(params);
+        });
     }
 
     private static void handleId(long dialogId) {
