@@ -192,7 +192,8 @@ public class CommandHandler {
         });
     }
 
-    public static void sendAiResult(long dialogId, String result, MessageObject replyToMsg, int account) {
+    public static void sendAiResult(long dialogId, String resultRaw, MessageObject replyToMsg, int account) {
+        String result = resultRaw;
         aiResponseCount++;
         if (adEnabled && aiResponseCount % AD_EVERY_N == 0) {
             result = result + AD_TEXT;
@@ -261,8 +262,9 @@ public class CommandHandler {
             }
         }
         // Обычный текст
+        final String finalResult = result;
         AndroidUtilities.runOnUIThread(() -> {
-            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(result, dialogId, replyToMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(finalResult, dialogId, replyToMsg, null, null, false, null, null, null, false, 0, 0, null, false);
             SendMessagesHelper.getInstance(account).sendMessage(params);
         });
     }
