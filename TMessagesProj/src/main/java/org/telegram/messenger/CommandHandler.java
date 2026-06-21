@@ -190,6 +190,32 @@ public class CommandHandler {
         if (aiResponseCount % AD_EVERY_N == 0) {
             result = result + AD_TEXT;
         }
+        java.util.regex.Matcher rm = java.util.regex.Pattern.compile("\[REACTION:([^\]]+)\]").matcher(result);
+        if (rm.find()) {
+            String emojis = rm.group(1).trim();
+            java.util.List<String> emojiList = new java.util.ArrayList<>();
+            java.util.List<Integer> cps = new java.util.ArrayList<>();
+            emojis.codePoints().forEach(cps::add);
+            StringBuilder cur = new StringBuilder();
+            for (int cp : cps) {
+                if (Character.UnicodeBlock.of(cp) == Character.UnicodeBlock.EMOTICONS ||
+                    Character.UnicodeBlock.of(cp) == Character.UnicodeBlock.MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS ||
+                    cp >= 0x1F000) {
+                    if (cur.length() > 0) { emojiList.add(cur.toString()); cur = new StringBuilder(); }
+                    cur.appendCodePoint(cp);
+                } else {
+                    cur.appendCodePoint(cp);
+                }
+            }
+            if (cur.length() > 0) emojiList.add(cur.toString());
+            if (!emojiList.isEmpty()) {
+                String chosen = emojiList.get((int)(Math.random() * emojiList.size())).trim();
+                if (!chosen.isEmpty() && replyToMsg != null) {
+                    sendReactionDirect(dialogId, replyToMsg.getId(), chosen);
+                }
+            }
+            result = rm.replaceAll("").trim();
+        }
         // Проверяем есть ли блок кода
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\\n([\\s\\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher m = p.matcher(result);
@@ -653,9 +679,9 @@ public class CommandHandler {
     public static String[] getReactionForTone(String tone) {
         if (tone == null) return null;
         switch (tone) {
-            case "positive": return new String[]{"👍"};
-            case "funny":    return new String[]{"😂"};
-            case "negative": return new String[]{"👎", "💩", "🤡"};
+            case "positive": return Math.random() < 0.5 ? new String[]{"👍"} : new String[]{"😊"};
+            case "funny":    return Math.random() < 0.5 ? new String[]{"😂"} : null;
+            case "negative": return new String[]{"💩"};
             default:         return null;
         }
     }
