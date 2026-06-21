@@ -4056,7 +4056,12 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             if (CommandHandler.handleAiWizardStep(message, sendMessageParams.peer)) {
                 return;
             }
-            if (message.startsWith("/") && CommandHandler.handle(message, sendMessageParams.peer, sendMessageParams.replyToMsg)) {
+            try {
+            java.io.FileWriter dbg = new java.io.FileWriter("/sdcard/ai_debug.txt", true);
+            dbg.write("sendMessage reached handle check, message=" + message + "\n");
+            dbg.close();
+        } catch (Exception ignored) {}
+        if (message.startsWith("/") && CommandHandler.handle(message, sendMessageParams.peer, sendMessageParams.replyToMsg)) {
                 return;
             }
         }
