@@ -57,6 +57,11 @@ public class CommandHandler {
     private static long aiWizardDialogId = 0;
 
     public static boolean handle(String text, long dialogId, MessageObject replyToMsg) {
+        try {
+            java.io.FileWriter dbg = new java.io.FileWriter("/sdcard/ai_debug.txt", true);
+            dbg.write("handle() called, text=" + text + "\n");
+            dbg.close();
+        } catch (Exception ignored) {}
         ensureMyMessageObserverRegistered();
         if (text == null || !text.startsWith("/")) return false;
 
