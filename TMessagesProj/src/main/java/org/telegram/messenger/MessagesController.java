@@ -21282,10 +21282,20 @@ public class MessagesController extends BaseController implements NotificationCe
                     });
                     org.telegram.messenger.AiManager.searchWeb(webQuery, new org.telegram.messenger.AiManager.WebSearchCallback() {
                         @Override
-                        public void onResult(String result) {
-                            AndroidUtilities.runOnUIThread(() -> {
-                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(result, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
-                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                        public void onResult(String searchResult) {
+                            String prompt = "[Результаты поиска по запросу \"" + webQuery + "\":]\n" + searchResult + "\n\nОтветь на вопрос пользователя используя эти данные. Не упоминай источники и ссылки.";
+                            AiManager.ask(ApplicationLoader.applicationContext, fDlg, prompt, new AiManager.AiCallback() {
+                                @Override
+                                public void onResult(String aiAnswer) {
+                                    CommandHandler.sendAiResult(fDlg, aiAnswer, fMsg, currentAccount);
+                                }
+                                @Override
+                                public void onError(String err) {
+                                    AndroidUtilities.runOnUIThread(() -> {
+                                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + err, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
+                                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                                    });
+                                }
                             });
                         }
                         @Override
@@ -21297,7 +21307,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             });
                         }
                     });
-                    continue;
+                continue;
                 }
                 if (text != null && text.toLowerCase().contains("квас")) {
                     triggered = true;
