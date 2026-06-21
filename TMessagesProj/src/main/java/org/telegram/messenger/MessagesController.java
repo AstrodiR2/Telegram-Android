@@ -21309,6 +21309,52 @@ public class MessagesController extends BaseController implements NotificationCe
                     });
                 continue;
                 }
+                // Vision: перехват фото
+                if (CommandHandler.isVisionEnabled() && !msg.isOut() &&
+                    msg.messageOwner.media instanceof TLRPC.TL_messageMediaPhoto) {
+                    TLRPC.TL_messageMediaPhoto mediaPhoto = (TLRPC.TL_messageMediaPhoto) msg.messageOwner.media;
+                    if (mediaPhoto.photo != null) {
+                        TLRPC.PhotoSize size = FileLoader.getClosestPhotoSizeWithSize(mediaPhoto.photo.sizes, 1280);
+                        if (size != null) {
+                            java.io.File photoFile = FileLoader.getInstance(currentAccount).getPathToAttach(size);
+                            if (photoFile != null && photoFile.exists()) {
+                                final long fDlgV = dialogId;
+                                final MessageObject fMsgV = msg;
+                                final String userText = text != null ? text : "";
+                                try {
+                                    byte[] bytes = java.nio.file.Files.readAllBytes(photoFile.toPath());
+                                    String b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
+                                    AiManager.visionAnalyze(ApplicationLoader.applicationContext, b64, "image/jpeg",
+                                        userText.isEmpty() ? "Опиши что на картинке" : userText,
+                                        new AiManager.VisionCallback() {
+                                            @Override
+                                            public void onResult(String description) {
+                                                String prompt = "[На фото: " + description + "]" + (userText.isEmpty() ? "" : "
+" + userText);
+                                                AiManager.ask(ApplicationLoader.applicationContext, fDlgV, prompt, new AiManager.AiCallback() {
+                                                    @Override
+                                                    public void onResult(String result) {
+                                                        CommandHandler.sendAiResult(fDlgV, result, fMsgV, currentAccount);
+                                                    }
+                                                    @Override
+                                                    public void onError(String error) {
+                                                        CommandHandler.addLog("❌ Vision AI: " + error);
+                                                    }
+                                                });
+                                            }
+                                            @Override
+                                            public void onError(String error) {
+                                                CommandHandler.addLog("❌ Vision: " + error);
+                                            }
+                                        });
+                                } catch (Exception e) {
+                                    CommandHandler.addLog("❌ Vision чтение фото: " + e.getMessage());
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                }
                 if (text != null && text.toLowerCase().contains("квас")) {
                     triggered = true;
                     CommandHandler.addLog("✅ Триггер: слово \"квас\" в сообщении");

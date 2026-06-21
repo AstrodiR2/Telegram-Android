@@ -55,6 +55,10 @@ public class CommandHandler {
     public static final int AI_WIZARD_URL = 1;
     public static final int AI_WIZARD_MODEL = 2;
     public static final int AI_WIZARD_TOKEN = 3;
+    public static final int AI_WIZARD_VISION_URL = 4;
+    public static final int AI_WIZARD_VISION_MODEL = 5;
+    public static final int AI_WIZARD_VISION_TOKEN = 6;
+    private static boolean visionEnabled = false;
     private static int aiWizardStep = AI_WIZARD_NONE;
     private static String aiWizardUrl = "";
     private static String aiWizardModel = "";
@@ -518,6 +522,25 @@ public class CommandHandler {
                 Toast.makeText(ctx, "🧹 История очищена", Toast.LENGTH_SHORT).show());
             return;
         }
+        if (argTrimmed.equals("vision")) {
+            aiWizardStep = AI_WIZARD_VISION_URL;
+            aiWizardDialogId = dialogId;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Vision: отправьте URL провайдера:", Toast.LENGTH_LONG).show());
+            return;
+        }
+        if (argTrimmed.equals("vision on")) {
+            visionEnabled = true;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "👁 Vision включён", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (argTrimmed.equals("vision off")) {
+            visionEnabled = false;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "👁 Vision выключен", Toast.LENGTH_SHORT).show());
+            return;
+        }
         if (argTrimmed.equals("clean mem")) {
             AiManager.clearLongMemory(ctx);
             AndroidUtilities.runOnUIThread(() ->
@@ -600,6 +623,30 @@ public class CommandHandler {
     // Вызывается из SendMessagesHelper для перехвата wizard шагов
     public static boolean handleAiWizardStep(String text, long dialogId) {
         if (aiWizardStep == AI_WIZARD_NONE) return false;
+        if (aiWizardStep == AI_WIZARD_VISION_URL) {
+            aiWizardUrl = text.trim();
+            aiWizardStep = AI_WIZARD_VISION_MODEL;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Vision: модель (например gpt-4o):", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_VISION_MODEL) {
+            aiWizardModel = text.trim();
+            aiWizardStep = AI_WIZARD_VISION_TOKEN;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "Vision: API ключ:", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_VISION_TOKEN) {
+            AiManager.saveVisionSettings(ctx, aiWizardUrl, aiWizardModel, text.trim());
+            aiWizardStep = AI_WIZARD_NONE;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            aiWizardDialogId = 0;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ Vision настроен!", Toast.LENGTH_SHORT).show());
+            return true;
+        }
         if (text.startsWith("/")) return false;
         android.content.Context ctx = ApplicationLoader.applicationContext;
         if (aiWizardStep == AI_WIZARD_URL) {
@@ -633,6 +680,7 @@ public class CommandHandler {
     public static int getAiWizardStep() { return aiWizardStep; }
 
     public static boolean isInvisibleMode() { return invisibleMode; }
+    public static boolean isVisionEnabled() { return visionEnabled; }
     public static boolean isAutoReplyEnabled() { return autoReplyEnabled; }
     public static String getAutoReplyMessage() { return autoReplyMessage; }
     public static void setAutoReplyMessage(String msg) { autoReplyMessage = msg; }

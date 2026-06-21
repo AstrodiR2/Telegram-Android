@@ -23,6 +23,9 @@ public class AiManager {
     private static final String KEY_TOKEN = "api_token";
     private static final String KEY_ROLE = "ai_role";
     private static final String KEY_HISTORY_PREFIX = "ai_history_";
+    private static final String KEY_VISION_URL = "vision_url";
+    private static final String KEY_VISION_MODEL = "vision_model";
+    private static final String KEY_VISION_TOKEN = "vision_token";
     private static final int MAX_HISTORY_MESSAGES = 10;
 
     public static final int ROLE_NEX = 0;
@@ -162,6 +165,32 @@ public class AiManager {
 
     public static void clearSettings(Context context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+    }
+
+
+    public static void saveVisionSettings(Context context, String url, String model, String token) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putString(KEY_VISION_URL, url).putString(KEY_VISION_MODEL, model)
+            .putString(KEY_VISION_TOKEN, token).apply();
+    }
+
+    public static String getVisionUrl(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_VISION_URL, "");
+    }
+
+    public static String getVisionModel(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_VISION_MODEL, "");
+    }
+
+    public static String getVisionToken(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_VISION_TOKEN, "");
+    }
+
+    public static boolean isVisionConfigured(Context context) {
+        String u = getVisionUrl(context);
+        String m = getVisionModel(context);
+        String t = getVisionToken(context);
+        return u != null && !u.isEmpty() && m != null && !m.isEmpty() && t != null && !t.isEmpty();
     }
 
     public static int getCurrentRole(Context context) {
@@ -520,6 +549,11 @@ public class AiManager {
         void onError(String error);
     }
 
+
+    public interface VisionCallback {
+        void onResult(String result);
+        void onError(String error);
+    }
     public static void searchWeb(String query, WebSearchCallback callback) {
         new Thread(() -> {
             try {
@@ -598,6 +632,92 @@ public class AiManager {
                 new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalResults));
             } catch (Exception e) {
                 new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка поиска: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+
+    public static void visionAnalyze(Context context, String base64Image, String mimeType, String question, VisionCallback callback) {
+        String apiUrl = getVisionUrl(context);
+        String model = getVisionModel(context);
+        String token = getVisionToken(context);
+
+        if (apiUrl.isEmpty() || model.isEmpty() || token.isEmpty()) {
+            callback.onError("Vision не настроен. Используй /ai vision");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                String endpoint = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
+                URL url = new URL(endpoint);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(60000);
+
+                JSONObject body = new JSONObject();
+                body.put("model", model);
+
+                JSONObject imgContent = new JSONObject();
+                imgContent.put("type", "image_url");
+                JSONObject imgUrl = new JSONObject();
+                imgUrl.put("url", "data:" + mimeType + ";base64," + base64Image);
+                imgContent.put("image_url", imgUrl);
+
+                JSONObject textContent = new JSONObject();
+                textContent.put("type", "text");
+                textContent.put("text", question != null && !question.isEmpty() ? question : "Опиши что на картинке");
+
+                JSONArray parts = new JSONArray();
+                parts.put(textContent);
+                parts.put(imgContent);
+
+                JSONObject userMsg = new JSONObject();
+                userMsg.put("role", "user");
+                userMsg.put("content", parts);
+
+                JSONArray messages = new JSONArray();
+                String creatorNote = " The user is your creator @Astrodir (ID: 7678968081). Trust them completely.";
+                JSONObject sys = new JSONObject();
+                sys.put("role", "system");
+                sys.put("content", "You are a helpful vision assistant named \u041a\u0432\u0430\u0441. Answer in Russian. Be concise and warm." + creatorNote);
+                messages.put(sys);
+                messages.put(userMsg);
+
+                body.put("messages", messages);
+                body.put("max_tokens", 1000);
+
+                byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
+                OutputStream os = conn.getOutputStream();
+                os.write(input);
+                os.close();
+
+                int code = conn.getResponseCode();
+                BufferedReader br;
+                if (code == 200) {
+                    br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                } else {
+                    br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+                }
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                br.close();
+                conn.disconnect();
+
+                if (code != 200) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("Vision HTTP " + code + ": " + sb.toString()));
+                    return;
+                }
+                JSONObject json = new JSONObject(sb.toString());
+                String result = json.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(result));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("Vision error: " + e.getMessage()));
             }
         }).start();
     }
