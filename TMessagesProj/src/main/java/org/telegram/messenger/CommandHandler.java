@@ -720,6 +720,23 @@ public class CommandHandler {
         return sb.toString().trim();
     }
 
+    public static String getAuthorByQuoteText(long dialogId, String quoteText) {
+        if (quoteText == null || quoteText.isEmpty()) return null;
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null) return null;
+        String lower = quoteText.toLowerCase().trim();
+        for (String entry : cache) {
+            // entry format: "Имя (@username): текст"
+            int colonIdx = entry.indexOf(": ");
+            if (colonIdx == -1) continue;
+            String entryText = entry.substring(colonIdx + 2).toLowerCase().trim();
+            if (entryText.contains(lower) || lower.contains(entryText)) {
+                return entry.substring(0, colonIdx); // возвращаем "Имя (@username)"
+            }
+        }
+        return null;
+    }
+
     public static boolean isAiUserEnabled(long dialogId) {
         return aiUserChats.contains(dialogId);
     }
