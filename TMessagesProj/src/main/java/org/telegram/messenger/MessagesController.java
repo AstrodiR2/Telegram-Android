@@ -21145,10 +21145,24 @@ public class MessagesController extends BaseController implements NotificationCe
                 CommandHandler.addMessageById(dialogId, gmsg.getId(), gname, gusername, gtext);
             }
         }
-        if (CommandHandler.isAiUserEnabled(dialogId) && !scheduled) {
+        if (CommandHandler.isAiUserEnabled(dialogId) || true) { // whitelist может работать без ai user
+        if (!scheduled) {
             for (int i = 0; i < messages.size(); i++) {
                 MessageObject msg = messages.get(i);
                 if (msg.isOut()) continue;
+                // Blacklist/Whitelist
+                String senderUname = null;
+                {
+                    long sid = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        sid = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    TLRPC.User su = sid != 0 ? getMessagesController().getUser(sid) : null;
+                    senderUname = su != null ? su.username : null;
+                }
+                if (CommandHandler.isBlacklisted(senderUname)) continue;
+                boolean isWhitelisted = CommandHandler.isWhitelisted(senderUname);
+                if (!isWhitelisted && !CommandHandler.isAiUserEnabled(dialogId)) continue;
                 boolean triggered = false;
                 String text = msg.messageOwner != null ? msg.messageOwner.message : null;
                 // Видео ссылка

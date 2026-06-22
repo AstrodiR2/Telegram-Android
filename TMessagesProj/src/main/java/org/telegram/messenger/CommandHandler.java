@@ -386,6 +386,12 @@ public class CommandHandler {
                 "├ `/ai role` — сменить роль\n" +
                 "├ `/ai user` — автоответ в чате\n" +
                 "├ `/ai user off` — выключить везде\n" +
+                "├ `/ai allow @user` — whitelist (отвечать всегда)\n" +
+                "├ `/ai unallow @user` — убрать из whitelist\n" +
+                "├ `/ai block @user` — blacklist (никогда не отвечать)\n" +
+                "├ `/ai unblock @user` — убрать из blacklist\n" +
+                "├ `/ai api` — настроить API\n" +
+                "├ `/ai vision` — настроить Vision API\n" +
                 "├ `/ai clean` — очистить историю\n" +
                 "└ `/ai clean mem` — очистить память\n" +
                 "\n" +
@@ -558,6 +564,38 @@ public class CommandHandler {
                 Toast.makeText(ctx, nowOff ? "🤖 AI User выключен в этом чате" : "🤖 AI User включён в этом чате", Toast.LENGTH_SHORT).show());
             return;
         }
+        if (argTrimmed.startsWith("allow ")) {
+            String uname = argTrimmed.substring(6).trim();
+            addWhitelist(uname);
+            final String fu = uname;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ @" + fu + " в whitelist", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (argTrimmed.startsWith("unallow ")) {
+            String uname = argTrimmed.substring(8).trim();
+            removeWhitelist(uname);
+            final String fu = uname;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "❌ @" + fu + " убран из whitelist", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (argTrimmed.startsWith("block ")) {
+            String uname = argTrimmed.substring(6).trim();
+            addBlacklist(uname);
+            final String fu = uname;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "🚫 @" + fu + " в blacklist", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        if (argTrimmed.startsWith("unblock ")) {
+            String uname = argTrimmed.substring(8).trim();
+            removeBlacklist(uname);
+            final String fu = uname;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ @" + fu + " убран из blacklist", Toast.LENGTH_SHORT).show());
+            return;
+        }
         if (argTrimmed.equals("user off")) {
             aiUserChats.clear();
             AndroidUtilities.runOnUIThread(() ->
@@ -722,6 +760,34 @@ public class CommandHandler {
 
     private static final HashMap<Long, Long> webSearchCooldown = new HashMap<>();
     private static final HashMap<Long, java.util.HashSet<Long>> rudeUsers = new HashMap<>();
+    private static final java.util.HashSet<String> whitelistUsernames = new java.util.HashSet<>();
+    private static final java.util.HashSet<String> blacklistUsernames = new java.util.HashSet<>();
+
+    public static boolean isWhitelisted(String username) {
+        if (username == null) return false;
+        return whitelistUsernames.contains(username.toLowerCase().replace("@", ""));
+    }
+
+    public static boolean isBlacklisted(String username) {
+        if (username == null) return false;
+        return blacklistUsernames.contains(username.toLowerCase().replace("@", ""));
+    }
+
+    public static void addWhitelist(String username) {
+        whitelistUsernames.add(username.toLowerCase().replace("@", ""));
+    }
+
+    public static void removeWhitelist(String username) {
+        whitelistUsernames.remove(username.toLowerCase().replace("@", ""));
+    }
+
+    public static void addBlacklist(String username) {
+        blacklistUsernames.add(username.toLowerCase().replace("@", ""));
+    }
+
+    public static void removeBlacklist(String username) {
+        blacklistUsernames.remove(username.toLowerCase().replace("@", ""));
+    }
     private static final HashMap<Long, HashMap<Integer, String>> messageIdCache = new HashMap<>();
     private static final int MSG_ID_CACHE_SIZE = 200;
 
