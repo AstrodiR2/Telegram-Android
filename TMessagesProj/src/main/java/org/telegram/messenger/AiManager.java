@@ -80,8 +80,8 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
-            " WEB SEARCH: If you need current/recent information to answer properly, add [SEARCH:your query] at the very end of your response (after reaction if any). Formulate the query yourself based on what was asked. Only use this when you genuinely need fresh data — not for things you already know." +
-            " RUDE DETECTION: If the user is being rude/insulting to you, add [RUDE] at the very end of your response. If the user has apologized or made peace (you decide — not by keywords), add [FORGIVEN] at the very end." +
+            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any)." +
+            " RUDE DETECTION: If the user is being rude/insulting to you, add [RUDE] at the very end of your response. If the user has apologized or made peace — words like sorry, прости, извини, сорян, сорри, моя вина, или любой другой способ попросить прощения — add [FORGIVEN] at the very end. You decide, but be generous with forgiveness." +
             sysExtra.toString();
         new Thread(() -> {
             try {

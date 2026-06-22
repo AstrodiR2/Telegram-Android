@@ -48,7 +48,7 @@ public class CommandHandler {
             if (eventLog.size() > MAX_LOG_ENTRIES) eventLog.removeFirst();
         }
     }
-    private static final long AI_USER_COOLDOWN_MS = 10000;
+    private static final long AI_USER_COOLDOWN_MS = 5000;
 
     // AI wizard state
     public static final int AI_WIZARD_NONE = 0;
@@ -722,6 +722,25 @@ public class CommandHandler {
 
     private static final HashMap<Long, Long> webSearchCooldown = new HashMap<>();
     private static final HashMap<Long, java.util.HashSet<Long>> rudeUsers = new HashMap<>();
+    private static final HashMap<Long, HashMap<Integer, String>> messageIdCache = new HashMap<>();
+    private static final int MSG_ID_CACHE_SIZE = 200;
+
+    public static void addMessageById(long dialogId, int msgId, String authorName, String authorUsername, String text) {
+        if (text == null || text.isEmpty()) return;
+        HashMap<Integer, String> cache = messageIdCache.get(dialogId);
+        if (cache == null) { cache = new HashMap<>(); messageIdCache.put(dialogId, cache); }
+        String entry = authorName + (authorUsername != null && !authorUsername.isEmpty() ? " (@" + authorUsername + ")" : "") + ": " + text;
+        cache.put(msgId, entry);
+        if (cache.size() > MSG_ID_CACHE_SIZE) {
+            cache.remove(cache.keySet().iterator().next());
+        }
+    }
+
+    public static String getMessageById(long dialogId, int msgId) {
+        HashMap<Integer, String> cache = messageIdCache.get(dialogId);
+        if (cache == null) return null;
+        return cache.get(msgId);
+    }
 
     public static boolean isRudeUser(long dialogId, long userId) {
         java.util.HashSet<Long> set = rudeUsers.get(dialogId);

@@ -21142,6 +21142,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 String gname = guser != null && guser.first_name != null ? guser.first_name : "Unknown";
                 String gusername = guser != null ? guser.username : null;
                 CommandHandler.addGroupMessage(dialogId, gname, gusername, gtext);
+                CommandHandler.addMessageById(dialogId, gmsg.getId(), gname, gusername, gtext);
             }
         }
         if (CommandHandler.isAiUserEnabled(dialogId) && !scheduled) {
@@ -21406,16 +21407,16 @@ public class MessagesController extends BaseController implements NotificationCe
                                 replyContext4 = "[Реплай на сообщение от " + rName + ": \"" + rText + "\"]\n";
                             }
                         } else if (replyHeader.reply_to_msg_id != 0) {
-                            String qt = replyHeader.quote_text;
-                            if (qt != null && !qt.isEmpty()) {
-                                String author = CommandHandler.getAuthorByQuoteText(fDialogId, qt);
-                                if (author != null) {
-                                    replyContext4 = "[Реплай на сообщение от " + author + ": \"" + qt + "\"]\n";
-                                } else {
-                                    replyContext4 = "[Реплай на сообщение: \"" + qt + "\"]\n";
-                                }
+                            String cachedEntry = CommandHandler.getMessageById(fDialogId, replyHeader.reply_to_msg_id);
+                            if (cachedEntry != null) {
+                                replyContext4 = "[Реплай на сообщение от " + cachedEntry + "]\n";
                             } else {
-                                replyContext4 = "[Реплай на сообщение ID=" + replyHeader.reply_to_msg_id + "]\n";
+                                String qt = replyHeader.quote_text;
+                                if (qt != null && !qt.isEmpty()) {
+                                    replyContext4 = "[Реплай на сообщение: \"" + qt + "\"]\n";
+                                } else {
+                                    replyContext4 = "[Реплай на сообщение ID=" + replyHeader.reply_to_msg_id + "]\n";
+                                }
                             }
                         }
                     }
