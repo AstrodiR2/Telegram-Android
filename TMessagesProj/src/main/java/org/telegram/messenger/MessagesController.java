@@ -21145,7 +21145,6 @@ public class MessagesController extends BaseController implements NotificationCe
                 CommandHandler.addMessageById(dialogId, gmsg.getId(), gname, gusername, gtext);
             }
         }
-        if (CommandHandler.isAiUserEnabled(dialogId) || true) { // whitelist может работать без ai user
         if (!scheduled) {
             for (int i = 0; i < messages.size(); i++) {
                 MessageObject msg = messages.get(i);
