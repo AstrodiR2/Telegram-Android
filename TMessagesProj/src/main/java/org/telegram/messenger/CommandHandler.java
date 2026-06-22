@@ -35,6 +35,7 @@ public class CommandHandler {
     private static final int MAX_CACHED_MESSAGE_IDS = 100;
     private static int aiResponseCount = 0;
     private static boolean adEnabled = false;
+    private static boolean foneEnabled = false;
     private static final String AD_TEXT = "\n\n💡 API для GPT, Claude, DeepSeek и других моделей: @imbekapi_bot";
     private static final int AD_EVERY_N = 5;
 
@@ -124,6 +125,19 @@ public class CommandHandler {
                 final boolean adNowOn = adEnabled;
                 AndroidUtilities.runOnUIThread(() ->
                     Toast.makeText(ApplicationLoader.applicationContext, adNowOn ? "📢 Реклама включена" : "🔇 Реклама выключена", Toast.LENGTH_SHORT).show());
+                return true;
+            case "/fone":
+                foneEnabled = !foneEnabled;
+                final boolean foneNowOn = foneEnabled;
+                AndroidUtilities.runOnUIThread(() -> {
+                    android.content.Context ctx = ApplicationLoader.applicationContext;
+                    if (foneNowOn) {
+                        KvasService.start(ctx);
+                    } else {
+                        KvasService.stop(ctx);
+                    }
+                    Toast.makeText(ctx, foneNowOn ? "🟢 Фон включён" : "🔴 Фон выключён", Toast.LENGTH_SHORT).show();
+                });
                 return true;
             case "/exit":
                 handleExit(dialogId);
