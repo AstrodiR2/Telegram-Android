@@ -21329,8 +21329,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                         new AiManager.VisionCallback() {
                                             @Override
                                             public void onResult(String description) {
-                                                String prompt = "[На фото: " + description + "]" + (userText.isEmpty() ? "" : "
-" + userText);
+                                                String prompt = "[На фото: " + description + "]" + (userText.isEmpty() ? "" : "\n" + userText);
                                                 AiManager.ask(ApplicationLoader.applicationContext, fDlgV, prompt, new AiManager.AiCallback() {
                                                     @Override
                                                     public void onResult(String result) {
