@@ -21281,6 +21281,10 @@ public class MessagesController extends BaseController implements NotificationCe
                         TLRPC.PhotoSize size = FileLoader.getClosestPhotoSizeWithSize(mediaPhoto.photo.sizes, 1280);
                         if (size != null) {
                             java.io.File photoFile = FileLoader.getInstance(currentAccount).getPathToAttach(size);
+                            if (photoFile != null && !photoFile.exists()) {
+                                // Скачиваем фото если не скачано
+                                FileLoader.getInstance(currentAccount).loadFile(size, mediaPhoto.photo, FileLoader.MEDIA_DIR_IMAGE, FileLoader.PRIORITY_HIGH, 1);
+                            }
                             if (photoFile != null && photoFile.exists()) {
                                 final long fDlgV = dialogId;
                                 final MessageObject fMsgV = msg;
