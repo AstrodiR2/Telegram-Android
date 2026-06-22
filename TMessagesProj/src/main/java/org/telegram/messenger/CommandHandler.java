@@ -721,6 +721,23 @@ public class CommandHandler {
     }
 
     private static final HashMap<Long, Long> webSearchCooldown = new HashMap<>();
+    private static final HashMap<Long, java.util.HashSet<Long>> rudeUsers = new HashMap<>();
+
+    public static boolean isRudeUser(long dialogId, long userId) {
+        java.util.HashSet<Long> set = rudeUsers.get(dialogId);
+        return set != null && set.contains(userId);
+    }
+
+    public static void markRudeUser(long dialogId, long userId) {
+        java.util.HashSet<Long> set = rudeUsers.get(dialogId);
+        if (set == null) { set = new java.util.HashSet<>(); rudeUsers.put(dialogId, set); }
+        set.add(userId);
+    }
+
+    public static void forgivUser(long dialogId, long userId) {
+        java.util.HashSet<Long> set = rudeUsers.get(dialogId);
+        if (set != null) set.remove(userId);
+    }
     private static final long WEB_SEARCH_CD_MS = 60_000L;
 
     public static boolean canWebSearch(long dialogId) {

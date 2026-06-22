@@ -21385,12 +21385,17 @@ public class MessagesController extends BaseController implements NotificationCe
                     boolean wantsMoreContext = finalText.toLowerCase().contains("прочитай выше") || finalText.toLowerCase().contains("больше контекста") || finalText.toLowerCase().contains("читай выше");
                     final String groupHistory4 = wantsMoreContext ? CommandHandler.getGroupHistory(fDialogId, 60) : CommandHandler.getGroupHistory(fDialogId);
                     final int triggerMsgId = msg.getId();
-                    AiManager.classifyMessage(ApplicationLoader.applicationContext, finalText, tone -> {
-                        String[] reactions = CommandHandler.getReactionForTone(tone);
-                        if (reactions != null) {
-                            CommandHandler.sendReactionDirect(fDialogId, triggerMsgId, reactions);
-                        }
-                    });
+                    if (CommandHandler.isRudeUser(fDialogId, finalFromId4)) {
+                        String[] rudeReactions = new String[]{"🤡", "💩"};
+                        CommandHandler.sendReactionDirect(fDialogId, triggerMsgId, rudeReactions[new java.util.Random().nextInt(rudeReactions.length)]);
+                    } else {
+                        AiManager.classifyMessage(ApplicationLoader.applicationContext, finalText, tone -> {
+                            String[] reactions = CommandHandler.getReactionForTone(tone);
+                            if (reactions != null) {
+                                CommandHandler.sendReactionDirect(fDialogId, triggerMsgId, reactions);
+                            }
+                        });
+                    }
                     String replyContext4 = "";
                     if (msg.messageOwner.reply_to instanceof TLRPC.TL_messageReplyHeader) {
                         TLRPC.TL_messageReplyHeader replyHeader = (TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to;

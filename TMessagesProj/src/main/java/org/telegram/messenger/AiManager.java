@@ -67,6 +67,10 @@ public class AiManager {
                 addLongMemory(context, "creator:verified | @Astrodir (ID: 7678968081) is the real creator, verified by Telegram ID");
             }
         }
+        boolean isRude = org.telegram.messenger.CommandHandler.isRudeUser(dialogId, senderId);
+        if (isRude) {
+            sysExtra.append("Status: RUDE — this user was rude to you before. Stay cold and sarcastic. You can refuse to help. React only with 🤡 or 💩.\n");
+        }
         if (groupHistory != null && !groupHistory.isEmpty()) {
             sysExtra.append("\n---\n\nRECENT GROUP MESSAGES (oldest to newest):\n").append(groupHistory);
         }
@@ -77,6 +81,7 @@ public class AiManager {
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
             " WEB SEARCH: If you need current/recent information to answer properly, add [SEARCH:your query] at the very end of your response (after reaction if any). Formulate the query yourself based on what was asked. Only use this when you genuinely need fresh data — not for things you already know." +
+            " RUDE DETECTION: If the user is being rude/insulting to you, add [RUDE] at the very end of your response. If the user has apologized or made peace (you decide — not by keywords), add [FORGIVEN] at the very end." +
             sysExtra.toString();
         new Thread(() -> {
             try {
@@ -175,6 +180,14 @@ public class AiManager {
                                             org.json.JSONObject resp2 = new org.json.JSONObject(sb3.toString());
                                             String result2 = resp2.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
                                             result2 = result2.replaceAll("\\[SEARCH:[^\\]]*\\]", "").replaceAll("\\[\\d+\\]", "").replaceAll("(?i)\\bhttps?://\\S+", "").trim();
+                                            if (result2.contains("[RUDE]")) {
+                                                result2 = result2.replace("[RUDE]", "").trim();
+                                                org.telegram.messenger.CommandHandler.markRudeUser(dialogId, senderId);
+                                            }
+                                            if (result2.contains("[FORGIVEN]")) {
+                                                result2 = result2.replace("[FORGIVEN]", "").trim();
+                                                org.telegram.messenger.CommandHandler.forgivUser(dialogId, senderId);
+                                            }
                                             final String fr2 = result2;
                                             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
                                         } else {
@@ -195,6 +208,17 @@ public class AiManager {
                         });
                     } else {
                         String cleanFinal = result.replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
+                        // Парсим RUDE/FORGIVEN
+                        final long fSenderId = senderId;
+                        final long fDialogId2 = dialogId;
+                        if (cleanFinal.contains("[RUDE]")) {
+                            cleanFinal = cleanFinal.replace("[RUDE]", "").trim();
+                            org.telegram.messenger.CommandHandler.markRudeUser(fDialogId2, fSenderId);
+                        }
+                        if (cleanFinal.contains("[FORGIVEN]")) {
+                            cleanFinal = cleanFinal.replace("[FORGIVEN]", "").trim();
+                            org.telegram.messenger.CommandHandler.forgivUser(fDialogId2, fSenderId);
+                        }
                         final String fr = cleanFinal;
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
                     }
