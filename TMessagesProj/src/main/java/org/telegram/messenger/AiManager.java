@@ -544,7 +544,7 @@ public class AiManager {
                 java.io.File latest = files[0];
                 for (java.io.File f : files) { if (f.lastModified() > latest.lastModified()) latest = f; }
                 final java.io.File finalFile = latest;
-                final String finalTitle = latest.getName().replaceFirst("\.[^.]+$", "");
+                final String finalTitle = latest.getName().replaceFirst("\\.[^.]+$", "");
                 new Handler(Looper.getMainLooper()).post(() -> callback.onResult(finalFile, finalTitle));
             } catch (Exception e) {
                 new Handler(Looper.getMainLooper()).post(() -> callback.onError("Ошибка скачки аудио: " + e.getMessage()));
