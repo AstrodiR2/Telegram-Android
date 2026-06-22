@@ -738,7 +738,7 @@ public class CommandHandler {
         java.util.HashSet<Long> set = rudeUsers.get(dialogId);
         if (set != null) set.remove(userId);
     }
-    private static final long WEB_SEARCH_CD_MS = 60_000L;
+    private static final long WEB_SEARCH_CD_MS = 2_000L;
 
     public static boolean canWebSearch(long dialogId) {
         Long last = webSearchCooldown.get(dialogId);
