@@ -21271,44 +21271,7 @@ public class MessagesController extends BaseController implements NotificationCe
                     triggered = true;
                     continue;
                 }
-                if (text != null && textLow.contains("квас найди")) {
-                    final String webQuery = text.toLowerCase().replace("квас найди", "").trim();
-                    final long fDlg = dialogId;
-                    final MessageObject fMsg = msg;
-                    CommandHandler.addLog("🔍 Веб-поиск: " + webQuery);
-                    AndroidUtilities.runOnUIThread(() -> {
-                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("🔍 Ищу в интернете...", fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
-                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
-                    });
-                    org.telegram.messenger.AiManager.searchWeb(webQuery, new org.telegram.messenger.AiManager.WebSearchCallback() {
-                        @Override
-                        public void onResult(String searchResult) {
-                            String prompt = "[Результаты поиска по запросу \"" + webQuery + "\":]\n" + searchResult + "\n\nОтветь на вопрос пользователя используя эти данные. Не упоминай источники и ссылки.";
-                            AiManager.ask(ApplicationLoader.applicationContext, fDlg, prompt, new AiManager.AiCallback() {
-                                @Override
-                                public void onResult(String aiAnswer) {
-                                    CommandHandler.sendAiResult(fDlg, aiAnswer, fMsg, currentAccount);
-                                }
-                                @Override
-                                public void onError(String err) {
-                                    AndroidUtilities.runOnUIThread(() -> {
-                                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + err, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
-                                        SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
-                                    });
-                                }
-                            });
-                        }
-                        @Override
-                        public void onError(String error) {
-                            CommandHandler.addLog("❌ Веб-поиск ошибка: " + error);
-                            AndroidUtilities.runOnUIThread(() -> {
-                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of("😕 " + error, fDlg, fMsg, null, null, false, null, null, null, false, 0, 0, null, false);
-                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
-                            });
-                        }
-                    });
-                continue;
-                }
+
                 // Vision: перехват фото
                 if (CommandHandler.isVisionEnabled() && !msg.isOut() &&
                     msg.messageOwner.media instanceof TLRPC.TL_messageMediaPhoto) {

@@ -720,6 +720,18 @@ public class CommandHandler {
         return sb.toString().trim();
     }
 
+    private static final HashMap<Long, Long> webSearchCooldown = new HashMap<>();
+    private static final long WEB_SEARCH_CD_MS = 60_000L;
+
+    public static boolean canWebSearch(long dialogId) {
+        Long last = webSearchCooldown.get(dialogId);
+        return last == null || (System.currentTimeMillis() - last) >= WEB_SEARCH_CD_MS;
+    }
+
+    public static void markWebSearchUsed(long dialogId) {
+        webSearchCooldown.put(dialogId, System.currentTimeMillis());
+    }
+
     public static String getAuthorByQuoteText(long dialogId, String quoteText) {
         if (quoteText == null || quoteText.isEmpty()) return null;
         java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);

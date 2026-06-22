@@ -76,6 +76,7 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
+            " WEB SEARCH: If you need current/recent information to answer properly, add [SEARCH:your query] at the very end of your response (after reaction if any). Formulate the query yourself based on what was asked. Only use this when you genuinely need fresh data — not for things you already know." +
             sysExtra.toString();
         new Thread(() -> {
             try {
@@ -123,8 +124,80 @@ public class AiManager {
                     org.json.JSONObject um2 = new org.json.JSONObject(); um2.put("role", "user"); um2.put("content", question); updHist.put(um2);
                     org.json.JSONObject am2 = new org.json.JSONObject(); am2.put("role", "assistant"); am2.put("content", result); updHist.put(am2);
                     saveHistory(context, dialogId, updHist);
-                    final String fr = result;
-                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
+                    // Парсим [SEARCH:запрос]
+                    java.util.regex.Matcher searchMatcher = java.util.regex.Pattern.compile("\\[SEARCH:([^\\]]+)\\]").matcher(result);
+                    if (searchMatcher.find() && org.telegram.messenger.CommandHandler.canWebSearch(dialogId)) {
+                        String searchQuery = searchMatcher.group(1).trim();
+                        String cleanResult = result.substring(0, searchMatcher.start()).trim();
+                        org.telegram.messenger.CommandHandler.markWebSearchUsed(dialogId);
+                        searchWeb(searchQuery, new WebSearchCallback() {
+                            @Override
+                            public void onResult(String searchResult) {
+                                String newQuestion = "[Результаты поиска по запросу \"" + searchQuery + "\":]\n" + searchResult + "\n\nТеперь ответь на исходный вопрос пользователя используя эти данные. Не упоминай источники.";
+                                new Thread(() -> {
+                                    try {
+                                        String endpoint2 = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
+                                        java.net.URL url2 = new java.net.URL(endpoint2);
+                                        java.net.HttpURLConnection conn2 = (java.net.HttpURLConnection) url2.openConnection();
+                                        conn2.setRequestMethod("POST");
+                                        conn2.setRequestProperty("Content-Type", "application/json");
+                                        conn2.setRequestProperty("Authorization", "Bearer " + token);
+                                        conn2.setDoOutput(true);
+                                        conn2.setConnectTimeout(15000);
+                                        conn2.setReadTimeout(30000);
+                                        org.json.JSONObject body2 = new org.json.JSONObject();
+                                        body2.put("model", model);
+                                        org.json.JSONArray msgs2 = new org.json.JSONArray();
+                                        org.json.JSONObject sys2 = new org.json.JSONObject();
+                                        sys2.put("role", "system");
+                                        sys2.put("content", systemPrompt);
+                                        msgs2.put(sys2);
+                                        org.json.JSONArray hist2 = getHistory(context, dialogId);
+                                        for (int i = 0; i < hist2.length(); i++) msgs2.put(hist2.getJSONObject(i));
+                                        org.json.JSONObject uMsg2 = new org.json.JSONObject();
+                                        uMsg2.put("role", "user");
+                                        uMsg2.put("content", newQuestion);
+                                        msgs2.put(uMsg2);
+                                        body2.put("messages", msgs2);
+                                        body2.put("max_tokens", 1200);
+                                        byte[] input2 = body2.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                        java.io.OutputStream os2 = conn2.getOutputStream();
+                                        os2.write(input2);
+                                        os2.close();
+                                        int code2 = conn2.getResponseCode();
+                                        java.io.BufferedReader br2 = new java.io.BufferedReader(new java.io.InputStreamReader(
+                                            code2 == 200 ? conn2.getInputStream() : conn2.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+                                        StringBuilder sb3 = new StringBuilder();
+                                        String line2;
+                                        while ((line2 = br2.readLine()) != null) sb3.append(line2);
+                                        br2.close();
+                                        if (code2 == 200) {
+                                            org.json.JSONObject resp2 = new org.json.JSONObject(sb3.toString());
+                                            String result2 = resp2.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
+                                            result2 = result2.replaceAll("\\[SEARCH:[^\\]]*\\]", "").replaceAll("\\[\\d+\\]", "").replaceAll("(?i)\\bhttps?://\\S+", "").trim();
+                                            final String fr2 = result2;
+                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
+                                        } else {
+                                            final String fr2 = cleanResult;
+                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
+                                        }
+                                    } catch (Exception e2) {
+                                        final String fr2 = cleanResult;
+                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
+                                    }
+                                }).start();
+                            }
+                            @Override
+                            public void onError(String error) {
+                                final String fr2 = cleanResult;
+                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
+                            }
+                        });
+                    } else {
+                        String cleanFinal = result.replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
+                        final String fr = cleanFinal;
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
+                    }
                 } else {
                     new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onError("Ошибка API: " + code + " " + sb2.toString()));
                 }
