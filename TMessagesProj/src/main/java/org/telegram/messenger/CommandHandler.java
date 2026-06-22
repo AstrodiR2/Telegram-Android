@@ -623,6 +623,7 @@ public class CommandHandler {
     // Вызывается из SendMessagesHelper для перехвата wizard шагов
     public static boolean handleAiWizardStep(String text, long dialogId) {
         if (aiWizardStep == AI_WIZARD_NONE) return false;
+        android.content.Context ctx = ApplicationLoader.applicationContext;
         if (aiWizardStep == AI_WIZARD_VISION_URL) {
             aiWizardUrl = text.trim();
             aiWizardStep = AI_WIZARD_VISION_MODEL;
@@ -648,7 +649,6 @@ public class CommandHandler {
             return true;
         }
         if (text.startsWith("/")) return false;
-        android.content.Context ctx = ApplicationLoader.applicationContext;
         if (aiWizardStep == AI_WIZARD_URL) {
             aiWizardUrl = text.trim();
             aiWizardStep = AI_WIZARD_MODEL;
