@@ -80,7 +80,7 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
-            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any)." +
+            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking." + " WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking." +
             " RUDE DETECTION: If the user is being rude/insulting to you, add [RUDE] at the very end of your response. If the user has apologized or made peace — words like sorry, прости, извини, сорян, сорри, моя вина, или любой другой способ попросить прощения — add [FORGIVEN] at the very end. You decide, but be generous with forgiveness." +
             sysExtra.toString();
         new Thread(() -> {
@@ -208,6 +208,60 @@ public class AiManager {
                         });
                     } else {
                         String cleanFinal = result.replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
+                        // Парсим [FETCH:url]
+                        java.util.regex.Matcher fetchMatcher = java.util.regex.Pattern.compile("\\[FETCH:([^\\]]+)\\]").matcher(cleanFinal);
+                        if (fetchMatcher.find()) {
+                            String fetchUrl = fetchMatcher.group(1).trim();
+                            String cleanBeforeFetch = cleanFinal.substring(0, fetchMatcher.start()).trim();
+                            new Thread(() -> {
+                                String fetched = fetchUrl(fetchUrl);
+                                String fetchQuestion = "[Содержимое страницы " + fetchUrl + ":]
+" + fetched + "
+
+Теперь ответь на исходный вопрос пользователя используя эти данные.";
+                                try {
+                                    String ep = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
+                                    java.net.HttpURLConnection cf = (java.net.HttpURLConnection) new java.net.URL(ep).openConnection();
+                                    cf.setRequestMethod("POST");
+                                    cf.setRequestProperty("Content-Type", "application/json");
+                                    cf.setRequestProperty("Authorization", "Bearer " + token);
+                                    cf.setDoOutput(true);
+                                    cf.setConnectTimeout(15000);
+                                    cf.setReadTimeout(30000);
+                                    org.json.JSONObject bf = new org.json.JSONObject();
+                                    bf.put("model", model);
+                                    org.json.JSONArray mf = new org.json.JSONArray();
+                                    org.json.JSONObject sf = new org.json.JSONObject();
+                                    sf.put("role", "system"); sf.put("content", systemPrompt); mf.put(sf);
+                                    org.json.JSONArray hf = getHistory(context, dialogId);
+                                    for (int i = 0; i < hf.length(); i++) mf.put(hf.getJSONObject(i));
+                                    org.json.JSONObject uf = new org.json.JSONObject();
+                                    uf.put("role", "user"); uf.put("content", fetchQuestion); mf.put(uf);
+                                    bf.put("messages", mf); bf.put("max_tokens", 1200);
+                                    byte[] inp = bf.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                    java.io.OutputStream osf = cf.getOutputStream(); osf.write(inp); osf.close();
+                                    int cf2 = cf.getResponseCode();
+                                    java.io.BufferedReader brf = new java.io.BufferedReader(new java.io.InputStreamReader(
+                                        cf2 == 200 ? cf.getInputStream() : cf.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+                                    StringBuilder sbf = new StringBuilder(); String lf;
+                                    while ((lf = brf.readLine()) != null) sbf.append(lf);
+                                    brf.close();
+                                    if (cf2 == 200) {
+                                        org.json.JSONObject rf = new org.json.JSONObject(sbf.toString());
+                                        String res2 = rf.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
+                                        res2 = res2.replaceAll("\\[FETCH:[^\\]]*\\]", "").replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
+                                        final String finalRes2 = res2;
+                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(finalRes2));
+                                    } else {
+                                        final String fb = cleanBeforeFetch;
+                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                                    }
+                                } catch (Exception ef) {
+                                    final String fb = cleanBeforeFetch;
+                                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                                }
+                            }).start();
+                        } else {
                         // Парсим RUDE/FORGIVEN
                         final long fSenderId = senderId;
                         final long fDialogId2 = dialogId;
@@ -221,6 +275,7 @@ public class AiManager {
                         }
                         final String fr = cleanFinal;
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
+                        } // конец else (no FETCH)
                     }
                 } else {
                     new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onError("Ошибка API: " + code + " " + sb2.toString()));
@@ -640,6 +695,55 @@ public class AiManager {
 
 
     // ===== DUCKDUCKGO WEB SEARCH =====
+
+
+    public static String fetchUrl(String urlStr) {
+        try {
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            int code = conn.getResponseCode();
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
+                code == 200 ? conn.getInputStream() : conn.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) sb.append(line).append("\n");
+            br.close();
+            String text = sb.toString();
+            // Убираем HTML теги если есть
+            text = text.replaceAll("<[^>]+>", " ").replaceAll("\\s{2,}", " ").trim();
+            // Обрезаем до 3000 символов чтобы не перегрузить контекст
+            if (text.length() > 3000) text = text.substring(0, 3000) + "...";
+            return text;
+        } catch (Exception e) {
+            return "Ошибка загрузки: " + e.getMessage();
+        }
+    }
+
+    public static String fetchUrl(String urlStr) {
+        try {
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            int code = conn.getResponseCode();
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
+                code == 200 ? conn.getInputStream() : conn.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) sb.append(line).append("\n");
+            br.close();
+            String text = sb.toString();
+            text = text.replaceAll("<[^>]+>", " ").replaceAll("\\s{2,}", " ").trim();
+            if (text.length() > 3000) text = text.substring(0, 3000) + "...";
+            return text;
+        } catch (Exception e) {
+            return "Ошибка загрузки: " + e.getMessage();
+        }
+    }
 
     public interface WebSearchCallback {
         void onResult(String results);
