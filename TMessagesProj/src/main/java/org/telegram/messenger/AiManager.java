@@ -77,7 +77,7 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
-            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking." + " WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking." +
+            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. +
             "" +
             sysExtra.toString();
         new Thread(() -> {
@@ -256,6 +256,69 @@ public class AiManager {
                         final String fr = cleanFinal;
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
                         } // конец else (no FETCH)
+                        // Парсим [PROFILE:@username]
+                        java.util.regex.Matcher profileMatcher = java.util.regex.Pattern.compile("\[PROFILE:(@?[^\]]+)\]").matcher(cleanFinal);
+                        if (profileMatcher.find()) {
+                            String profileUsername = profileMatcher.group(1).trim();
+                            String cleanBeforeProfile = cleanFinal.substring(0, profileMatcher.start()).trim();
+                            fetchProfile(context, profileUsername, new ProfileCallback() {
+                                @Override
+                                public void onResult(String profileInfo) {
+                                    String profileQuestion = "[Информация о профиле " + profileUsername + ":]
+" + profileInfo + "
+
+Оцени этот профиль от 0 до 10 и дай краткий комментарий.";
+                                    new Thread(() -> {
+                                        try {
+                                            String ep = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
+                                            java.net.HttpURLConnection cp = (java.net.HttpURLConnection) new java.net.URL(ep).openConnection();
+                                            cp.setRequestMethod("POST");
+                                            cp.setRequestProperty("Content-Type", "application/json");
+                                            cp.setRequestProperty("Authorization", "Bearer " + token);
+                                            cp.setDoOutput(true);
+                                            cp.setConnectTimeout(15000);
+                                            cp.setReadTimeout(30000);
+                                            org.json.JSONObject bp = new org.json.JSONObject();
+                                            bp.put("model", model);
+                                            org.json.JSONArray mp = new org.json.JSONArray();
+                                            org.json.JSONObject sp = new org.json.JSONObject();
+                                            sp.put("role", "system"); sp.put("content", systemPrompt); mp.put(sp);
+                                            org.json.JSONArray hp = getHistory(context, dialogId);
+                                            for (int i = 0; i < hp.length(); i++) mp.put(hp.getJSONObject(i));
+                                            org.json.JSONObject up = new org.json.JSONObject();
+                                            up.put("role", "user"); up.put("content", profileQuestion); mp.put(up);
+                                            bp.put("messages", mp); bp.put("max_tokens", 1200);
+                                            byte[] inp = bp.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                            java.io.OutputStream osp = cp.getOutputStream(); osp.write(inp); osp.close();
+                                            int cp2 = cp.getResponseCode();
+                                            java.io.BufferedReader brp = new java.io.BufferedReader(new java.io.InputStreamReader(
+                                                cp2 == 200 ? cp.getInputStream() : cp.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+                                            StringBuilder sbp = new StringBuilder(); String lp;
+                                            while ((lp = brp.readLine()) != null) sbp.append(lp);
+                                            brp.close();
+                                            if (cp2 == 200) {
+                                                org.json.JSONObject rp = new org.json.JSONObject(sbp.toString());
+                                                String resp2 = rp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
+                                                resp2 = resp2.replaceAll("\[PROFILE:[^\]]*\]", "").replaceAll("\[FETCH:[^\]]*\]", "").replaceAll("\[SEARCH:[^\]]*\]", "").trim();
+                                                final String fr = resp2;
+                                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
+                                            } else {
+                                                final String fb = cleanBeforeProfile;
+                                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                                            }
+                                        } catch (Exception ep2) {
+                                            final String fb = cleanBeforeProfile;
+                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                                        }
+                                    }).start();
+                                }
+                                @Override
+                                public void onError(String error) {
+                                    final String fb = cleanBeforeProfile + " " + error;
+                                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                                }
+                            });
+                        }
                     }
                 } else {
                     new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onError("Ошибка API: " + code + " " + sb2.toString()));
@@ -702,27 +765,78 @@ public class AiManager {
         }
     }
 
-    public static String fetchUrl(String urlStr) {
-        try {
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(10000);
-            int code = conn.getResponseCode();
-            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
-                code == 200 ? conn.getInputStream() : conn.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) sb.append(line).append("\n");
-            br.close();
-            String text = sb.toString();
-            text = text.replaceAll("<[^>]+>", " ").replaceAll("\\s{2,}", " ").trim();
-            if (text.length() > 3000) text = text.substring(0, 3000) + "...";
-            return text;
-        } catch (Exception e) {
-            return "Ошибка загрузки: " + e.getMessage();
-        }
+    public interface ProfileCallback {
+        void onResult(String profileInfo);
+        void onError(String error);
+    }
+
+    public static void fetchProfile(android.content.Context context, String username, ProfileCallback callback) {
+        String uname = username.startsWith("@") ? username.substring(1) : username;
+        org.telegram.tgnet.TLRPC.TL_contacts_resolveUsername req = new org.telegram.tgnet.TLRPC.TL_contacts_resolveUsername();
+        req.username = uname;
+        org.telegram.tgnet.ConnectionsManager.getInstance(org.telegram.messenger.UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
+            if (error != null || response == null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onError("Не могу найти @" + uname));
+                return;
+            }
+            org.telegram.tgnet.TLRPC.TL_contacts_resolvedPeer resolved = (org.telegram.tgnet.TLRPC.TL_contacts_resolvedPeer) response;
+            StringBuilder info = new StringBuilder();
+            info.append("Профиль @").append(uname).append(":\n");
+            // Берём bio из users
+            if (!resolved.users.isEmpty()) {
+                org.telegram.tgnet.TLRPC.User user = resolved.users.get(0);
+                info.append("Имя: ").append(user.first_name != null ? user.first_name : "").append(" ").append(user.last_name != null ? user.last_name : "").append("\n");
+                if (user.username != null) info.append("Username: @").append(user.username).append("\n");
+                // bio получаем через userFull
+                org.telegram.tgnet.TLRPC.TL_users_getFullUser fullReq = new org.telegram.tgnet.TLRPC.TL_users_getFullUser();
+                org.telegram.tgnet.TLRPC.TL_inputUser inputUser = new org.telegram.tgnet.TLRPC.TL_inputUser();
+                inputUser.user_id = user.id;
+                inputUser.access_hash = user.access_hash;
+                fullReq.id = inputUser;
+                org.telegram.tgnet.ConnectionsManager.getInstance(org.telegram.messenger.UserConfig.selectedAccount).sendRequest(fullReq, (resp2, err2) -> {
+                    if (resp2 instanceof org.telegram.tgnet.TLRPC.TL_users_userFull) {
+                        org.telegram.tgnet.TLRPC.TL_users_userFull uf = (org.telegram.tgnet.TLRPC.TL_users_userFull) resp2;
+                        if (uf.full_user != null && uf.full_user.about != null) {
+                            info.append("Bio: ").append(uf.full_user.about).append("\n");
+                        }
+                    }
+                    final String finalInfo = info.toString();
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(finalInfo));
+                });
+            } else if (!resolved.chats.isEmpty()) {
+                // Это канал/группа
+                org.telegram.tgnet.TLRPC.Chat chat = resolved.chats.get(0);
+                info.append("Канал/группа: ").append(chat.title != null ? chat.title : "").append("\n");
+                if (chat.username != null) info.append("Username: @").append(chat.username).append("\n");
+                // Получаем историю канала
+                org.telegram.tgnet.TLRPC.TL_messages_getHistory histReq = new org.telegram.tgnet.TLRPC.TL_messages_getHistory();
+                histReq.peer = org.telegram.messenger.MessagesController.getInstance(org.telegram.messenger.UserConfig.selectedAccount).getInputPeer(-chat.id);
+                histReq.limit = 20;
+                histReq.offset_id = 0;
+                histReq.offset_date = 0;
+                histReq.add_offset = 0;
+                histReq.max_id = 0;
+                histReq.min_id = 0;
+                histReq.hash = 0;
+                org.telegram.tgnet.ConnectionsManager.getInstance(org.telegram.messenger.UserConfig.selectedAccount).sendRequest(histReq, (resp3, err3) -> {
+                    if (resp3 instanceof org.telegram.tgnet.TLRPC.messages_Messages) {
+                        org.telegram.tgnet.TLRPC.messages_Messages msgs = (org.telegram.tgnet.TLRPC.messages_Messages) resp3;
+                        info.append("Последние сообщения (до 20):\n");
+                        int count = 0;
+                        for (org.telegram.tgnet.TLRPC.Message m : msgs.messages) {
+                            if (m.message != null && !m.message.isEmpty()) {
+                                info.append("- ").append(m.message, 0, Math.min(m.message.length(), 200)).append("\n");
+                                if (++count >= 20) break;
+                            }
+                        }
+                    }
+                    final String finalInfo = info.toString();
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(finalInfo));
+                });
+            } else {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onError("Профиль не найден"));
+            }
+        });
     }
 
     public interface WebSearchCallback {
