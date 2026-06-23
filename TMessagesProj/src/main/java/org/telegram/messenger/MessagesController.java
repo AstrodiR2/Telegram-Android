@@ -21287,7 +21287,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
 
                 // Vision: перехват фото
-                if (CommandHandler.isVisionEnabled() && !msg.isOut() &&
+                if (CommandHandler.isVisionEnabled(getContext()) && !msg.isOut() &&
                     msg.messageOwner.media instanceof TLRPC.TL_messageMediaPhoto) {
                     TLRPC.TL_messageMediaPhoto mediaPhoto = (TLRPC.TL_messageMediaPhoto) msg.messageOwner.media;
                     if (mediaPhoto.photo != null) {

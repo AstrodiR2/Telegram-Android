@@ -59,7 +59,7 @@ public class CommandHandler {
     public static final int AI_WIZARD_VISION_URL = 4;
     public static final int AI_WIZARD_VISION_MODEL = 5;
     public static final int AI_WIZARD_VISION_TOKEN = 6;
-    private static boolean visionEnabled = false;
+
     private static int aiWizardStep = AI_WIZARD_NONE;
     private static String aiWizardUrl = "";
     private static String aiWizardModel = "";
@@ -549,18 +549,8 @@ public class CommandHandler {
                 Toast.makeText(ctx, "Vision: отправьте URL провайдера:", Toast.LENGTH_LONG).show());
             return;
         }
-        if (argTrimmed.equals("vision on")) {
-            visionEnabled = true;
-            AndroidUtilities.runOnUIThread(() ->
-                Toast.makeText(ctx, "👁 Vision включён", Toast.LENGTH_SHORT).show());
-            return;
-        }
-        if (argTrimmed.equals("vision off")) {
-            visionEnabled = false;
-            AndroidUtilities.runOnUIThread(() ->
-                Toast.makeText(ctx, "👁 Vision выключен", Toast.LENGTH_SHORT).show());
-            return;
-        }
+
+
         if (argTrimmed.equals("clean mem")) {
             AiManager.clearLongMemory(ctx);
             AndroidUtilities.runOnUIThread(() ->
@@ -732,7 +722,7 @@ public class CommandHandler {
     public static int getAiWizardStep() { return aiWizardStep; }
 
     public static boolean isInvisibleMode() { return invisibleMode; }
-    public static boolean isVisionEnabled() { return visionEnabled; }
+    public static boolean isVisionEnabled(android.content.Context context) { return AiManager.isVisionConfigured(context); }
     public static boolean isAutoReplyEnabled() { return autoReplyEnabled; }
     public static String getAutoReplyMessage() { return autoReplyMessage; }
     public static void setAutoReplyMessage(String msg) { autoReplyMessage = msg; }

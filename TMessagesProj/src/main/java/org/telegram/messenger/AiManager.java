@@ -67,10 +67,7 @@ public class AiManager {
                 addLongMemory(context, "creator:verified | @Astrodir (ID: 7678968081) is the real creator, verified by Telegram ID");
             }
         }
-        boolean isRude = org.telegram.messenger.CommandHandler.isRudeUser(dialogId, senderId);
-        if (isRude) {
-            sysExtra.append("Status: RUDE — this user was rude to you before. Stay cold and sarcastic. You can refuse to help. React only with 🤡 or 💩.\n");
-        }
+        boole
         if (groupHistory != null && !groupHistory.isEmpty()) {
             sysExtra.append("\n---\n\nRECENT GROUP MESSAGES (oldest to newest):\n").append(groupHistory);
         }
@@ -81,7 +78,7 @@ public class AiManager {
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
             " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking." + " WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking." +
-            " RUDE DETECTION: If the user is being rude/insulting to you, add [RUDE] at the very end of your response. If the user has apologized or made peace — words like sorry, прости, извини, сорян, сорри, моя вина, или любой другой способ попросить прощения — add [FORGIVEN] at the very end. You decide, but be generous with forgiveness." +
+            "" +
             sysExtra.toString();
         new Thread(() -> {
             try {
@@ -180,14 +177,7 @@ public class AiManager {
                                             org.json.JSONObject resp2 = new org.json.JSONObject(sb3.toString());
                                             String result2 = resp2.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
                                             result2 = result2.replaceAll("\\[SEARCH:[^\\]]*\\]", "").replaceAll("\\[\\d+\\]", "").replaceAll("(?i)\\bhttps?://\\S+", "").trim();
-                                            if (result2.contains("[RUDE]")) {
-                                                result2 = result2.replace("[RUDE]", "").trim();
-                                                org.telegram.messenger.CommandHandler.markRudeUser(dialogId, senderId);
-                                            }
-                                            if (result2.contains("[FORGIVEN]")) {
-                                                result2 = result2.replace("[FORGIVEN]", "").trim();
-                                                org.telegram.messenger.CommandHandler.forgivUser(dialogId, senderId);
-                                            }
+
                                             final String fr2 = result2;
                                             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
                                         } else {
@@ -262,17 +252,7 @@ public class AiManager {
                                 }
                             }).start();
                         } else {
-                        // Парсим RUDE/FORGIVEN
-                        final long fSenderId = senderId;
-                        final long fDialogId2 = dialogId;
-                        if (cleanFinal.contains("[RUDE]")) {
-                            cleanFinal = cleanFinal.replace("[RUDE]", "").trim();
-                            org.telegram.messenger.CommandHandler.markRudeUser(fDialogId2, fSenderId);
-                        }
-                        if (cleanFinal.contains("[FORGIVEN]")) {
-                            cleanFinal = cleanFinal.replace("[FORGIVEN]", "").trim();
-                            org.telegram.messenger.CommandHandler.forgivUser(fDialogId2, fSenderId);
-                        }
+
                         final String fr = cleanFinal;
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
                         } // конец else (no FETCH)
