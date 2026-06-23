@@ -21340,9 +21340,9 @@ public class MessagesController extends BaseController implements NotificationCe
                                     if (photoFile != null && photoFile.exists()) {
                                         processPhoto.run();
                                     } else {
-                                        CommandHandler.addLog("❌ Vision: фото не скачалось за 5 сек");
+                                        CommandHandler.addLog("❌ Vision: фото не скачалось за 30 сек");
                                     }
-                                }, 10000);
+                                }, 30000);
                             }
                             continue;
                         }
