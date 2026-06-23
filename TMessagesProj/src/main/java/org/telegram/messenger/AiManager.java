@@ -69,9 +69,7 @@ public class AiManager {
             if (!mem.contains("creator:verified")) {
                 addLongMemory(context, "creator:verified | @Astrodir (ID: 7678968081) is the real creator, verified by Telegram ID");
             }
-        }
-        boole
-        if (groupHistory != null && !groupHistory.isEmpty()) {
+        }        if (groupHistory != null && !groupHistory.isEmpty()) {
             sysExtra.append("\n---\n\nRECENT GROUP MESSAGES (oldest to newest):\n").append(groupHistory);
         }
         String longMemory = getLongMemory(context);
@@ -80,8 +78,7 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
-            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. WEATHER: If someone asks about weather in a city — add [FETCH:https://wttr.in/CityName?format=3] at the very end, replacing CityName with the city (use English, URL-encoded if needed). CURRENCY: If someone asks about exchange rates — add [FETCH:https://api.exchangerate-api.com/v4/latest/USD] at the very end. TIME/DATE: You already know the current date and time — it is provided in the system info above. Answer time/date questions directly without fetching anything. +
-            "" +
+            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. WEATHER: If someone asks about weather in a city — add [FETCH:https://wttr.in/CityName?format=3] at the very end, replacing CityName with the city (use English, URL-encoded if needed). CURRENCY: If someone asks about exchange rates — add [FETCH:https://api.exchangerate-api.com/v4/latest/USD] at the very end. TIME/DATE: You already know the current date and time — it is provided in the system info above. Answer time/date questions directly without fetching anything." +
             sysExtra.toString();
         new Thread(() -> {
             try {
@@ -208,10 +205,7 @@ public class AiManager {
                             String cleanBeforeFetch = cleanFinal.substring(0, fetchMatcher.start()).trim();
                             new Thread(() -> {
                                 String fetched = fetchUrl(fetchUrl);
-                                String fetchQuestion = "[Содержимое страницы " + fetchUrl + ":]
-" + fetched + "
-
-Теперь ответь на исходный вопрос пользователя используя эти данные.";
+                                String fetchQuestion = "[Содержимое страницы " + fetchUrl + ":]\n" + fetched + "\n\nТеперь ответь на исходный вопрос пользователя используя эти данные.";
                                 try {
                                     String ep = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
                                     java.net.HttpURLConnection cf = (java.net.HttpURLConnection) new java.net.URL(ep).openConnection();
@@ -260,17 +254,14 @@ public class AiManager {
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
                         } // конец else (no FETCH)
                         // Парсим [PROFILE:@username]
-                        java.util.regex.Matcher profileMatcher = java.util.regex.Pattern.compile("\[PROFILE:(@?[^\]]+)\]").matcher(cleanFinal);
+                        java.util.regex.Matcher profileMatcher = java.util.regex.Pattern.compile("\\[PROFILE:(@?[^\\]]+)\\]").matcher(cleanFinal);
                         if (profileMatcher.find()) {
                             String profileUsername = profileMatcher.group(1).trim();
                             String cleanBeforeProfile = cleanFinal.substring(0, profileMatcher.start()).trim();
                             fetchProfile(context, profileUsername, new ProfileCallback() {
                                 @Override
                                 public void onResult(String profileInfo) {
-                                    String profileQuestion = "[Информация о профиле " + profileUsername + ":]
-" + profileInfo + "
-
-Оцени этот профиль от 0 до 10 и дай краткий комментарий.";
+                                    String profileQuestion = "[Информация о профиле " + profileUsername + ":]\n" + profileInfo + "\n\nОцени этот профиль от 0 до 10 и дай краткий комментарий.";
                                     new Thread(() -> {
                                         try {
                                             String ep = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
@@ -302,7 +293,7 @@ public class AiManager {
                                             if (cp2 == 200) {
                                                 org.json.JSONObject rp = new org.json.JSONObject(sbp.toString());
                                                 String resp2 = rp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
-                                                resp2 = resp2.replaceAll("\[PROFILE:[^\]]*\]", "").replaceAll("\[FETCH:[^\]]*\]", "").replaceAll("\[SEARCH:[^\]]*\]", "").trim();
+                                                resp2 = resp2.replaceAll("\\[PROFILE:[^\\]]*\\]", "").replaceAll("\\[FETCH:[^\\]]*\\]", "").replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
                                                 final String fr = resp2;
                                                 new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
                                             } else {
