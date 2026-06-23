@@ -54,7 +54,10 @@ public class AiManager {
         }
         boolean isCreator = (senderId == 8793341910L || senderId == 7678968081L);
         StringBuilder sysExtra = new StringBuilder();
-        sysExtra.append("\n\n---\n\nCURRENT SENDER\n\n");
+        String currentDateTime = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault()).format(new java.util.Date());
+        sysExtra.append("\n\n---\n\nSYSTEM INFO\n\n");
+        sysExtra.append("Current date and time: ").append(currentDateTime).append("\n");
+        sysExtra.append("\n---\n\nCURRENT SENDER\n\n");
         sysExtra.append("Name: ").append(senderName).append("\n");
         if (senderUsername != null && !senderUsername.isEmpty()) {
             sysExtra.append("Username: @").append(senderUsername).append("\n");
@@ -77,7 +80,7 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
-            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. +
+            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. WEATHER: If someone asks about weather in a city — add [FETCH:https://wttr.in/CityName?format=3] at the very end, replacing CityName with the city (use English, URL-encoded if needed). CURRENCY: If someone asks about exchange rates — add [FETCH:https://api.exchangerate-api.com/v4/latest/USD] at the very end. TIME/DATE: You already know the current date and time — it is provided in the system info above. Answer time/date questions directly without fetching anything. +
             "" +
             sysExtra.toString();
         new Thread(() -> {
