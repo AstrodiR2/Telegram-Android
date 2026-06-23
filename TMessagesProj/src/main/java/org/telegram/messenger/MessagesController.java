@@ -21296,7 +21296,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             java.io.File photoFile = FileLoader.getInstance(currentAccount).getPathToAttach(size);
                             if (photoFile != null && !photoFile.exists()) {
                                 // Скачиваем фото если не скачано
-                                FileLoader.getInstance(currentAccount).loadFile(ImageLocation.getForPhoto(size, mediaPhoto.photo), null, null, FileLoader.MEDIA_DIR_IMAGE, FileLoader.PRIORITY_HIGH, 1);
+                                FileLoader.getInstance(currentAccount).loadFile(ImageLocation.getForPhoto(size, mediaPhoto.photo), mediaPhoto.photo, null, FileLoader.MEDIA_DIR_IMAGE, FileLoader.PRIORITY_HIGH);
                             }
                             if (photoFile != null && photoFile.exists()) {
                                 final long fDlgV = dialogId;
