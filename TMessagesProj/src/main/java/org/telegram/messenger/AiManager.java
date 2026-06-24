@@ -252,66 +252,69 @@ public class AiManager {
 
                         final String fr = cleanFinal;
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
-                        } // конец else (no FETCH)
+                        } else if (java.util.regex.Pattern.compile("\\[PROFILE:(@?[^\\]]+)\\]").matcher(result).find()) {
                         // Парсим [PROFILE:@username]
-                        java.util.regex.Matcher profileMatcher = java.util.regex.Pattern.compile("\\[PROFILE:(@?[^\\]]+)\\]").matcher(cleanFinal);
-                        if (profileMatcher.find()) {
-                            String profileUsername = profileMatcher.group(1).trim();
-                            String cleanBeforeProfile = cleanFinal.substring(0, profileMatcher.start()).trim();
-                            fetchProfile(context, profileUsername, new ProfileCallback() {
-                                @Override
-                                public void onResult(String profileInfo) {
-                                    String profileQuestion = "[Информация о профиле " + profileUsername + ":]\n" + profileInfo + "\n\nОцени этот профиль от 0 до 10 и дай краткий комментарий.";
-                                    new Thread(() -> {
-                                        try {
-                                            String ep = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
-                                            java.net.HttpURLConnection cp = (java.net.HttpURLConnection) new java.net.URL(ep).openConnection();
-                                            cp.setRequestMethod("POST");
-                                            cp.setRequestProperty("Content-Type", "application/json");
-                                            cp.setRequestProperty("Authorization", "Bearer " + token);
-                                            cp.setDoOutput(true);
-                                            cp.setConnectTimeout(15000);
-                                            cp.setReadTimeout(30000);
-                                            org.json.JSONObject bp = new org.json.JSONObject();
-                                            bp.put("model", model);
-                                            org.json.JSONArray mp = new org.json.JSONArray();
-                                            org.json.JSONObject sp = new org.json.JSONObject();
-                                            sp.put("role", "system"); sp.put("content", systemPrompt); mp.put(sp);
-                                            org.json.JSONArray hp = getHistory(context, dialogId);
-                                            for (int i = 0; i < hp.length(); i++) mp.put(hp.getJSONObject(i));
-                                            org.json.JSONObject up = new org.json.JSONObject();
-                                            up.put("role", "user"); up.put("content", profileQuestion); mp.put(up);
-                                            bp.put("messages", mp); bp.put("max_tokens", 1200);
-                                            byte[] inp = bp.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                                            java.io.OutputStream osp = cp.getOutputStream(); osp.write(inp); osp.close();
-                                            int cp2 = cp.getResponseCode();
-                                            java.io.BufferedReader brp = new java.io.BufferedReader(new java.io.InputStreamReader(
-                                                cp2 == 200 ? cp.getInputStream() : cp.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
-                                            StringBuilder sbp = new StringBuilder(); String lp;
-                                            while ((lp = brp.readLine()) != null) sbp.append(lp);
-                                            brp.close();
-                                            if (cp2 == 200) {
-                                                org.json.JSONObject rp = new org.json.JSONObject(sbp.toString());
-                                                String resp2 = rp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
-                                                resp2 = resp2.replaceAll("\\[PROFILE:[^\\]]*\\]", "").replaceAll("\\[FETCH:[^\\]]*\\]", "").replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
-                                                final String fr = resp2;
-                                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
-                                            } else {
-                                                final String fb = cleanBeforeProfile;
-                                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
-                                            }
-                                        } catch (Exception ep2) {
+                        java.util.regex.Matcher profileMatcher = java.util.regex.Pattern.compile("\\[PROFILE:(@?[^\\]]+)\\]").matcher(result);
+                        profileMatcher.find();
+                        String profileUsername = profileMatcher.group(1).trim();
+                        String cleanBeforeProfile = cleanFinal.replaceAll("\\[PROFILE:[^\\]]*\\]", "").trim();
+                        fetchProfile(context, profileUsername, new ProfileCallback() {
+                            @Override
+                            public void onResult(String profileInfo) {
+                                String profileQuestion = "[Информация о профиле " + profileUsername + ":]\n" + profileInfo + "\n\nОцени этот профиль от 0 до 10 и дай краткий комментарий. Учти bio, контент канала если есть, активность.";
+                                new Thread(() -> {
+                                    try {
+                                        String ep = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
+                                        java.net.HttpURLConnection cp = (java.net.HttpURLConnection) new java.net.URL(ep).openConnection();
+                                        cp.setRequestMethod("POST");
+                                        cp.setRequestProperty("Content-Type", "application/json");
+                                        cp.setRequestProperty("Authorization", "Bearer " + token);
+                                        cp.setDoOutput(true);
+                                        cp.setConnectTimeout(15000);
+                                        cp.setReadTimeout(30000);
+                                        org.json.JSONObject bp = new org.json.JSONObject();
+                                        bp.put("model", model);
+                                        org.json.JSONArray mp = new org.json.JSONArray();
+                                        org.json.JSONObject sp = new org.json.JSONObject();
+                                        sp.put("role", "system"); sp.put("content", systemPrompt); mp.put(sp);
+                                        org.json.JSONArray hp = getHistory(context, dialogId);
+                                        for (int i = 0; i < hp.length(); i++) mp.put(hp.getJSONObject(i));
+                                        org.json.JSONObject up = new org.json.JSONObject();
+                                        up.put("role", "user"); up.put("content", profileQuestion); mp.put(up);
+                                        bp.put("messages", mp); bp.put("max_tokens", 1200);
+                                        byte[] inp = bp.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                        java.io.OutputStream osp = cp.getOutputStream(); osp.write(inp); osp.close();
+                                        int cp2 = cp.getResponseCode();
+                                        java.io.BufferedReader brp = new java.io.BufferedReader(new java.io.InputStreamReader(
+                                            cp2 == 200 ? cp.getInputStream() : cp.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+                                        StringBuilder sbp = new StringBuilder(); String lp;
+                                        while ((lp = brp.readLine()) != null) sbp.append(lp);
+                                        brp.close();
+                                        if (cp2 == 200) {
+                                            org.json.JSONObject rp = new org.json.JSONObject(sbp.toString());
+                                            String resp2 = rp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
+                                            resp2 = resp2.replaceAll("\\[PROFILE:[^\\]]*\\]", "").replaceAll("\\[FETCH:[^\\]]*\\]", "").replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
+                                            final String fr = resp2;
+                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
+                                        } else {
                                             final String fb = cleanBeforeProfile;
                                             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
                                         }
-                                    }).start();
-                                }
-                                @Override
-                                public void onError(String error) {
-                                    final String fb = cleanBeforeProfile + " " + error;
-                                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
-                                }
-                            });
+                                    } catch (Exception ep2) {
+                                        final String fb = cleanBeforeProfile;
+                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                                    }
+                                }).start();
+                            }
+                            @Override
+                            public void onError(String error) {
+                                final String fb = cleanBeforeProfile + " " + error;
+                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
+                            }
+                        });
+                        } else {
+                        final String fr = cleanFinal;
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
                         }
                     }
                 } else {
