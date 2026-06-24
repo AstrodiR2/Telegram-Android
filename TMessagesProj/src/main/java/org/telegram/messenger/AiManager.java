@@ -121,7 +121,7 @@ public class AiManager {
                 if (code == 200) {
                     org.json.JSONObject resp = new org.json.JSONObject(sb2.toString());
                     String result = resp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
-                    result = result.replaceAll("\\[\\d+\\]", "").replaceAll("(?i)\\bhttps?://\\S+", "").replaceAll("(?i)source[s]?:.*", "").replaceAll(" {2,}", " ").trim();
+                    result = result.replaceAll("\\[\\d+\\]", "").replaceAll("(?i)source[s]?:.*", "").replaceAll(" {2,}", " ").trim();
                     org.json.JSONArray updHist = getHistory(context, dialogId);
                     org.json.JSONObject um2 = new org.json.JSONObject(); um2.put("role", "user"); um2.put("content", question); updHist.put(um2);
                     org.json.JSONObject am2 = new org.json.JSONObject(); am2.put("role", "assistant"); am2.put("content", result); updHist.put(am2);
@@ -198,8 +198,8 @@ public class AiManager {
                         });
                     } else {
                         String cleanFinal = result.replaceAll("\\[SEARCH:[^\\]]*\\]", "").trim();
-                        // Парсим [FETCH:url]
-                        java.util.regex.Matcher fetchMatcher = java.util.regex.Pattern.compile("\\[FETCH:([^\\]]+)\\]").matcher(cleanFinal);
+                        // Парсим [FETCH:url] — ищем в сыром result до чистки URL
+                        java.util.regex.Matcher fetchMatcher = java.util.regex.Pattern.compile("\\[FETCH:([^\\]]+)\\]").matcher(result);
                         if (fetchMatcher.find()) {
                             String fetchUrl = fetchMatcher.group(1).trim();
                             String cleanBeforeFetch = cleanFinal.substring(0, fetchMatcher.start()).trim();
