@@ -1,0 +1,58 @@
+--- CommandHandler.java.orig
++++ CommandHandler.java
+@@ -650,6 +650,45 @@
+         }
+         String question = argTrimmed;
+         if (replyToMsg != null) {
++            // Проверяем, есть ли изображение в реплайнутом сообщении
++            if (replyToMsg.messageOwner != null && replyToMsg.messageOwner.media instanceof TLRPC.TL_messageMediaPhoto && 
++                isVisionEnabled() && AiManager.isVisionConfigured(ctx)) {
++                TLRPC.TL_messageMediaPhoto mediaPhoto = (TLRPC.TL_messageMediaPhoto) replyToMsg.messageOwner.media;
++                if (mediaPhoto.photo != null) {
++                    TLRPC.PhotoSize size = FileLoader.getClosestPhotoSizeWithSize(mediaPhoto.photo.sizes, 1280);
++                    if (size != null) {
++                        java.io.File photoFile = FileLoader.getInstance(UserConfig.selectedAccount).getPathToAttach(size);
++                        if (photoFile != null && photoFile.exists()) {
++                            try {
++                                byte[] bytes = java.nio.file.Files.readAllBytes(photoFile.toPath());
++                                String b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
++                                String finalQuestion = question;
++                                AiManager.visionAnalyze(ctx, b64, "image/jpeg",
++                                    question.isEmpty() ? "Опиши что на картинке" : question,
++                                    new AiManager.VisionCallback() {
++                                        @Override
++                                        public void onResult(String description) {
++                                            String prompt = "[На фото: " + description + "]" + (finalQuestion.isEmpty() ? "" : "\n" + finalQuestion);
++                                            AiManager.ask(ctx, dialogId, prompt, new AiManager.AiCallback() {
++                                                @Override
++                                                public void onResult(String result) {
++                                                    if (result == null) result = "(пустой ответ)";
++                                                    String q = finalQuestion.length() > 40 ? finalQuestion.substring(0, 40) + "..." : finalQuestion;
++                                                    String formatted = "───「 " + q + " 」───\n" + result;
++                                                    sendAiResult(dialogId, formatted, replyToMsg, UserConfig.selectedAccount);
++                                                }
++                                                @Override
++                                                public void onError(String error) {
++                                                    addLog("AI ERROR: " + error);
++                                                    if (error == null) error = "Неизвестная ошибка";
++                                                    sendLocal(dialogId, "❌ " + error);
++                                                }
++                                            });
++                                        }
++                                        @Override
++                                        public void onError(String error) {
++                                            addLog("❌ Vision: " + error);
++                                            sendLocal(dialogId, "❌ Vision: " + error);
++                                        }
++                                    });
++                                return;
++                            } catch (Exception e) {
++                                addLog("❌ Vision чтение фото: " + e.getMessage());
++                            }
++                        }
++                    }
++                }
++            }
+             String replyText = replyToMsg.messageOwner != null ? replyToMsg.messageOwner.message : null;
+             if (replyText != null && !replyText.isEmpty()) {
+                 question = "[Пользователь реплайнул на сообщение: \"" + replyText + "\"]\n" + question;

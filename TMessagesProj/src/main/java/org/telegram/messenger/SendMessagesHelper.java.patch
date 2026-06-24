@@ -1,0 +1,22 @@
+--- SendMessagesHelper.java.orig
++++ SendMessagesHelper.java
+@@ -4060,6 +4060,20 @@
+         } catch (Exception ignored) {}
+         if (message.startsWith("/") && CommandHandler.handle(message, sendMessageParams.peer, sendMessageParams.replyToMsg)) {
+                 return;
++            }
++        }
++        String caption = sendMessageParams.caption;
++        // Обработка подписи к изображению для AI команд
++        if (caption != null && caption.startsWith("/")) {
++            if (CommandHandler.handle(caption, sendMessageParams.peer, sendMessageParams.replyToMsg)) {
++                // Если подпись содержит AI команду, не отправляем изображение
++                if (sendMessageParams.photo != null) {
++                    return;
++                }
++            }
++        }
++        // Продолжаем обработку как обычно
++        if (message != null && message.startsWith("/") && CommandHandler.handle(message, sendMessageParams.peer, sendMessageParams.replyToMsg)) {
++            return;
+         }
