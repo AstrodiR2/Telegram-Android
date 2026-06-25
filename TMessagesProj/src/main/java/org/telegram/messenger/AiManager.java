@@ -248,7 +248,6 @@ public class AiManager {
                                     new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
                                 }
                             }).start();
-                        } else {
                         } else if (java.util.regex.Pattern.compile("\\[PROFILE:(@?[^\\]]+)\\]").matcher(result).find()) {
                         // Парсим [PROFILE:@username]
                         java.util.regex.Matcher profileMatcher = java.util.regex.Pattern.compile("\\[PROFILE:(@?[^\\]]+)\\]").matcher(result);
