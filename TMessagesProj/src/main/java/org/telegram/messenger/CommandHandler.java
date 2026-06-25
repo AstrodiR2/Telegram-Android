@@ -242,6 +242,59 @@ public class CommandHandler {
             }
             result = rm.replaceAll("").trim();
         }
+
+        // [SEND:@username:text]
+        java.util.regex.Matcher sendMatcher = java.util.regex.Pattern.compile("\[SEND:(@?[^:\]]+):([^\]]+)\]").matcher(result);
+        if (sendMatcher.find()) {
+            String sendUsername = sendMatcher.group(1).trim().replaceAll("^@", "");
+            String sendText = sendMatcher.group(2).trim();
+            result = sendMatcher.replaceAll("").trim();
+            final String finalSendText = sendText;
+            final long finalDialogId = dialogId;
+            AndroidUtilities.runOnUIThread(() -> {
+                MessagesController.getInstance(account).getUserNameResolver().resolve(sendUsername, (peerId) -> {
+                    if (peerId == null) {
+                        sendLocal(finalDialogId, "❌ Не нашёл пользователя @" + sendUsername);
+                        return;
+                    }
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.SendMessageParams p2 = SendMessagesHelper.SendMessageParams.of(finalSendText, peerId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.getInstance(account).sendMessage(p2);
+                        sendLocal(finalDialogId, "✅ Отправил @" + sendUsername + ": " + finalSendText);
+                    });
+                });
+            });
+        }
+
+        // [FORWARD:@username:message_id]
+        java.util.regex.Matcher fwdMatcher = java.util.regex.Pattern.compile("\[FORWARD:(@?[^:\]]+):(\d+)\]").matcher(result);
+        if (fwdMatcher.find()) {
+            String fwdUsername = fwdMatcher.group(1).trim().replaceAll("^@", "");
+            int fwdMsgId = Integer.parseInt(fwdMatcher.group(2).trim());
+            result = fwdMatcher.replaceAll("").trim();
+            final int finalMsgId = fwdMsgId;
+            final long finalDialogId2 = dialogId;
+            AndroidUtilities.runOnUIThread(() -> {
+                MessagesController.getInstance(account).getUserNameResolver().resolve(fwdUsername, (peerId) -> {
+                    if (peerId == null) {
+                        sendLocal(finalDialogId2, "❌ Не нашёл пользователя @" + fwdUsername);
+                        return;
+                    }
+                    AndroidUtilities.runOnUIThread(() -> {
+                        java.util.ArrayList<Integer> msgIds = new java.util.ArrayList<>();
+                        msgIds.add(finalMsgId);
+                        java.util.ArrayList<Long> peerIds = new java.util.ArrayList<>();
+                        peerIds.add(finalDialogId2);
+                        SendMessagesHelper.getInstance(account).sendMessage(
+                            (java.util.ArrayList<org.telegram.tgnet.TLRPC.Message>) null,
+                            msgIds, peerIds, peerId, false, null, account
+                        );
+                        sendLocal(finalDialogId2, "✅ Переслал сообщение #" + finalMsgId + " → @" + fwdUsername);
+                    });
+                });
+            });
+        }
+
         // Проверяем есть ли блок кода
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("```(python|py|markdown|md)?\\s*\\n([\\s\\S]*?)```", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher m = p.matcher(result);
