@@ -30,6 +30,7 @@ public class KvasService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createChannel();
+        scheduleNoonAlarm(this);
         Notification notif = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("Квас активен")
                 .setContentText("Бот работает в фоне")
@@ -37,6 +38,24 @@ public class KvasService extends Service {
                 .build();
         startForeground(NOTIF_ID, notif);
         return START_STICKY;
+    }
+
+    private void scheduleNoonAlarm(Context ctx) {
+        android.app.AlarmManager am = (android.app.AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        android.content.Intent i = new android.content.Intent(ctx, KvasAlarmReceiver.class);
+        android.app.PendingIntent pi = android.app.PendingIntent.getBroadcast(ctx, 1200, i,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 12);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
+            cal.add(java.util.Calendar.DAY_OF_YEAR, 1);
+        }
+        am.setRepeating(android.app.AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(),
+            android.app.AlarmManager.INTERVAL_DAY, pi);
     }
 
     private void createChannel() {

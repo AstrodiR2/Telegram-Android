@@ -54,6 +54,10 @@
         <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
 
         <receiver
+            android:name="org.telegram.messenger.KvasAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
             tools:replace="android:enabled"
             android:name="com.google.android.gms.measurement.AppMeasurementReceiver"
             android:enabled="false"

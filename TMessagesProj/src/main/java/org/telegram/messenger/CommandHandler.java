@@ -940,6 +940,10 @@ public class CommandHandler {
         return null;
     }
 
+    public static java.util.Set<Long> getAiUserChats() {
+        return new java.util.HashSet<>(aiUserChats);
+    }
+
     public static boolean isAiUserEnabled(long dialogId) {
         return aiUserChats.contains(dialogId);
     }
