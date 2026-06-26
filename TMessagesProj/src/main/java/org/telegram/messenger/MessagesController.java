@@ -21376,6 +21376,11 @@ public class MessagesController extends BaseController implements NotificationCe
                         CommandHandler.addLog("⚠️ Реплай на ID=" + replyToId + " — не в кэше, пропуск");
                     }
                 }
+                // В ЛС (личные сообщения) всегда отвечаем если /ai user включён
+                if (!triggered && dialogId > 0) {
+                    triggered = true;
+                    CommandHandler.addLog("✅ Триггер: личное сообщение (ЛС)");
+                }
                 if (!triggered) continue;
                 if (!CommandHandler.canAiUserReply(dialogId)) {
                     CommandHandler.addLog("⏱ Кулдаун активен, пропуск");
