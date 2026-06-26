@@ -51,6 +51,11 @@ public class CommandHandler {
     }
     private static final long AI_USER_COOLDOWN_MS = 5000;
 
+    // Угадай кто написал
+    private static final HashMap<Long, String> guessGameAnswer = new HashMap<>(); // dialogId -> правильный автор
+    private static final HashMap<Long, Integer> guessGameMsgId = new HashMap<>(); // dialogId -> ID сообщения с загадкой
+    private static final HashMap<Long, Boolean> guessGameActive = new HashMap<>();
+
     // AI wizard state
     public static final int AI_WIZARD_NONE = 0;
     public static final int AI_WIZARD_URL = 1;
@@ -813,6 +818,53 @@ public class CommandHandler {
     public static void setAutoReplyMessage(String msg) { autoReplyMessage = msg; }
     public static boolean isWaitingForAutoReply() { return waitingForAutoReply; }
     public static void setWaitingForAutoReply(boolean v) { waitingForAutoReply = v; }
+
+    // Угадай кто написал — методы
+    public static boolean isGuessGameActive(long dialogId) {
+        return Boolean.TRUE.equals(guessGameActive.get(dialogId));
+    }
+
+    public static void startGuessGame(long dialogId, String answer, int msgId) {
+        guessGameAnswer.put(dialogId, answer.toLowerCase());
+        guessGameMsgId.put(dialogId, msgId);
+        guessGameActive.put(dialogId, true);
+    }
+
+    public static void endGuessGame(long dialogId) {
+        guessGameAnswer.remove(dialogId);
+        guessGameMsgId.remove(dialogId);
+        guessGameActive.put(dialogId, false);
+    }
+
+    public static boolean checkGuessAnswer(long dialogId, String guess) {
+        String answer = guessGameAnswer.get(dialogId);
+        if (answer == null) return false;
+        return answer.contains(guess.toLowerCase().trim());
+    }
+
+    public static Integer getGuessGameMsgId(long dialogId) {
+        return guessGameMsgId.get(dialogId);
+    }
+
+    public static String getGuessGameAnswer(long dialogId) {
+        return guessGameAnswer.get(dialogId);
+    }
+
+    public static String getRandomGroupMessage(long dialogId) {
+        java.util.LinkedList<String> cache = groupMessageCache.get(dialogId);
+        if (cache == null || cache.isEmpty()) return null;
+        java.util.List<String> list = new java.util.ArrayList<>(cache);
+        // Берём рандомное, пропускаем слишком короткие
+        java.util.Collections.shuffle(list);
+        for (String entry : list) {
+            int colonIdx = entry.indexOf(": ");
+            if (colonIdx < 0) continue;
+            String text = entry.substring(colonIdx + 2).trim();
+            if (text.length() < 5) continue;
+            return entry;
+        }
+        return null;
+    }
 
     // /ai user feature accessors
     public static void setLastAiError(String error) { lastAiError = error; }

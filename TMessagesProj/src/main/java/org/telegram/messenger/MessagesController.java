@@ -21227,6 +21227,46 @@ public class MessagesController extends BaseController implements NotificationCe
                     continue;
                 }
                 String textLow = text != null ? text.toLowerCase() : "";
+
+                // Обработка реплая в игре "Угадай кто написал"
+                if (CommandHandler.isGuessGameActive(dialogId) &&
+                    msg.messageOwner.reply_to instanceof TLRPC.TL_messageReplyHeader) {
+                    int replyToId = ((TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to).reply_to_msg_id;
+                    Integer gameMsgId = CommandHandler.getGuessGameMsgId(dialogId);
+                    if (gameMsgId != null && replyToId == gameMsgId && text != null && !text.isEmpty()) {
+                        final long fDlgG = dialogId;
+                        final MessageObject fMsgG = msg;
+                        final String fGuess = text;
+                        final String fAnswer = CommandHandler.getGuessGameAnswer(dialogId);
+                        if (CommandHandler.checkGuessAnswer(dialogId, fGuess)) {
+                            CommandHandler.endGuessGame(dialogId);
+                            long fromIdG = 0;
+                            if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                                fromIdG = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                            }
+                            TLRPC.User winnerUser = fromIdG != 0 ? getMessagesController().getUser(fromIdG) : null;
+                            String winnerName = winnerUser != null && winnerUser.first_name != null ? winnerUser.first_name : "Кто-то";
+                            final String fWinner = winnerName;
+                            // Парсим полное имя автора из ответа
+                            String fullAnswer = fAnswer;
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                    "✅ Верно, " + fWinner + "! Это написал " + fullAnswer + " 🎉",
+                                    fDlgG, fMsgG, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                        } else {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                    "Нет 😄",
+                                    fDlgG, fMsgG, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                            });
+                        }
+                        continue;
+                    }
+                }
+
                 if (text != null && (textLow.contains("квас музыка") || textLow.contains("квас музыку") || textLow.contains("квас песня") || textLow.contains("квас песню"))) {
                     String musicQuery = textLow
                         .replace("квас музыка", "").replace("квас музыку", "")
@@ -21348,6 +21388,69 @@ public class MessagesController extends BaseController implements NotificationCe
                         }
                     }
                 }
+                // Триггер "угадай кто написал"
+                if (text != null && (textLow.contains("квас угадай") || textLow.contains("угадай кто написал"))) {
+                    if (CommandHandler.isGuessGameActive(dialogId)) {
+                        final long fDlgGS = dialogId;
+                        final MessageObject fMsgGS = msg;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                "Игра уже идёт, сначала угадайте кто написал 👆",
+                                fDlgGS, fMsgGS, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                        });
+                        continue;
+                    }
+                    String entry = CommandHandler.getRandomGroupMessage(dialogId);
+                    if (entry == null) {
+                        final long fDlgGN = dialogId;
+                        final MessageObject fMsgGN = msg;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                "Нет сообщений в кэше для игры 😕",
+                                fDlgGN, fMsgGN, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                        });
+                        continue;
+                    }
+                    // Парсим автора и текст
+                    int colonIdx = entry.indexOf(": ");
+                    String author = entry.substring(0, colonIdx).trim(); // "Годжо (@gojo)"
+                    String msgText = entry.substring(colonIdx + 2).trim();
+                    final long fDlgGame = dialogId;
+                    final MessageObject fMsgGame = msg;
+                    final String fAuthor = author;
+                    final String fMsgText = msgText;
+                    final int fCurrentAccount = currentAccount;
+                    AndroidUtilities.runOnUIThread(() -> {
+                        int[] sentId = {0};
+                        SendMessagesHelper.getInstance(fCurrentAccount).sendMessage(
+                            SendMessagesHelper.SendMessageParams.of(
+                                "Кто написал это сообщение? 🤔
+
+«" + fMsgText + "»
+
+Реплайте с ответом — у вас 60 секунд!",
+                                fDlgGame, fMsgGame, null, null, false, null, null, null, false, 0, 0, null, false));
+                        // Ждём чтобы получить ID сообщения — используем небольшую задержку
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            // Стартуем игру с временным msgId=0, обновим позже через addMessageById
+                            CommandHandler.startGuessGame(fDlgGame, fAuthor, 0);
+                            // Таймер 60 сек
+                            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                                if (CommandHandler.isGuessGameActive(fDlgGame)) {
+                                    CommandHandler.endGuessGame(fDlgGame);
+                                    SendMessagesHelper.getInstance(fCurrentAccount).sendMessage(
+                                        SendMessagesHelper.SendMessageParams.of(
+                                            "Время вышло! Это написал " + fAuthor + " 😏",
+                                            fDlgGame, null, null, null, false, null, null, null, false, 0, 0, null, false));
+                                }
+                            }, 60000);
+                        }, 500);
+                    });
+                    continue;
+                }
+
                 if (text != null && text.toLowerCase().contains("квас")) {
                     triggered = true;
                     CommandHandler.addLog("✅ Триггер: слово \"квас\" в сообщении");
