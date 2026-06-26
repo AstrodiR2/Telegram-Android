@@ -21228,6 +21228,55 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
                 String textLow = text != null ? text.toLowerCase() : "";
 
+                // Перехват следующего сообщения для forward
+                if (CommandHandler.isForwardWaiting(dialogId)) {
+                    long fromIdFwd = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        fromIdFwd = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    if (CommandHandler.isForwardWaitingFor(dialogId, fromIdFwd)) {
+                        String targetUsername = CommandHandler.getForwardTarget(dialogId);
+                        CommandHandler.clearForwardWait(dialogId);
+                        final long fDlgFwd = dialogId;
+                        final MessageObject fMsgFwd = msg;
+                        final String fTarget = targetUsername.replaceAll("^@", "");
+                        final int fMsgId = msg.getId();
+                        final int fAccount = currentAccount;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            MessagesController.getInstance(fAccount).getUserNameResolver().resolve(fTarget, peerId -> {
+                                if (peerId == null) {
+                                    SendMessagesHelper.getInstance(fAccount).sendMessage(
+                                        SendMessagesHelper.SendMessageParams.of("❌ Не нашёл @" + fTarget,
+                                        fDlgFwd, fMsgFwd, null, null, false, null, null, null, false, 0, 0, null, false));
+                                    return;
+                                }
+                                AndroidUtilities.runOnUIThread(() -> {
+                                    TLRPC.TL_messages_forwardMessages req = new TLRPC.TL_messages_forwardMessages();
+                                    req.from_peer = MessagesController.getInstance(fAccount).getInputPeer(dialogId);
+                                    req.to_peer = MessagesController.getInstance(fAccount).getInputPeer(peerId);
+                                    req.id.add(fMsgId);
+                                    req.random_id.add(Utilities.random.nextLong());
+                                    req.silent = false;
+                                    ConnectionsManager.getInstance(fAccount).sendRequest(req, (response, error) -> {
+                                        AndroidUtilities.runOnUIThread(() -> {
+                                            if (error != null) {
+                                                SendMessagesHelper.getInstance(fAccount).sendMessage(
+                                                    SendMessagesHelper.SendMessageParams.of("❌ Ошибка: " + error.text,
+                                                    fDlgFwd, null, null, null, false, null, null, null, false, 0, 0, null, false));
+                                            } else {
+                                                SendMessagesHelper.getInstance(fAccount).sendMessage(
+                                                    SendMessagesHelper.SendMessageParams.of("✅ Готово, переслал @" + fTarget,
+                                                    fDlgFwd, fMsgFwd, null, null, false, null, null, null, false, 0, 0, null, false));
+                                            }
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                        continue;
+                    }
+                }
+
                 // Обработка реплая в игре "Угадай кто написал"
                 if (CommandHandler.isGuessGameActive(dialogId) &&
                     msg.messageOwner.reply_to instanceof TLRPC.TL_messageReplyHeader) {
@@ -21388,6 +21437,39 @@ public class MessagesController extends BaseController implements NotificationCe
                         }
                     }
                 }
+                // Триггер "квас перешли моё следующее @username"
+                if (textLow.contains("квас перешли") || textLow.contains("квас перекинь")) {
+                    java.util.regex.Matcher fwdM = java.util.regex.Pattern.compile("@([\w]+)").matcher(text);
+                    String fwdTarget = null;
+                    while (fwdM.find()) {
+                        String u = fwdM.group(1);
+                        if (!u.equalsIgnoreCase("Oposut")) { fwdTarget = u; break; }
+                    }
+                    final long fDlgFwdT = dialogId;
+                    final MessageObject fMsgFwdT = msg;
+                    if (fwdTarget == null) {
+                        final String ft = fwdTarget;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(
+                                SendMessagesHelper.SendMessageParams.of("Кому пересылать? Укажи @username",
+                                fDlgFwdT, fMsgFwdT, null, null, false, null, null, null, false, 0, 0, null, false));
+                        });
+                        continue;
+                    }
+                    long fromIdFwdT = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        fromIdFwdT = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    CommandHandler.setForwardWait(dialogId, fromIdFwdT, fwdTarget);
+                    final String finalFwdTarget = fwdTarget;
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(
+                            SendMessagesHelper.SendMessageParams.of("Окей, жду твоё следующее сообщение — перешлю @" + finalFwdTarget,
+                            fDlgFwdT, fMsgFwdT, null, null, false, null, null, null, false, 0, 0, null, false));
+                    });
+                    continue;
+                }
+
                 // Триггер "угадай кто написал"
                 if (text != null && (textLow.contains("квас угадай") || textLow.contains("угадай кто написал"))) {
                     if (CommandHandler.isGuessGameActive(dialogId)) {

@@ -51,6 +51,10 @@ public class CommandHandler {
     }
     private static final long AI_USER_COOLDOWN_MS = 5000;
 
+    // Режим ожидания forward
+    private static final HashMap<Long, String> forwardWaitTarget = new HashMap<>(); // dialogId -> targetUsername
+    private static final HashMap<Long, Long> forwardWaitUserId = new HashMap<>(); // dialogId -> userId кто попросил
+
     // Угадай кто написал
     private static final HashMap<Long, String> guessGameAnswer = new HashMap<>(); // dialogId -> правильный автор
     private static final HashMap<Long, Integer> guessGameMsgId = new HashMap<>(); // dialogId -> ID сообщения с загадкой
@@ -818,6 +822,30 @@ public class CommandHandler {
     public static void setAutoReplyMessage(String msg) { autoReplyMessage = msg; }
     public static boolean isWaitingForAutoReply() { return waitingForAutoReply; }
     public static void setWaitingForAutoReply(boolean v) { waitingForAutoReply = v; }
+
+    // Forward — методы ожидания
+    public static void setForwardWait(long dialogId, long userId, String targetUsername) {
+        forwardWaitTarget.put(dialogId, targetUsername);
+        forwardWaitUserId.put(dialogId, userId);
+    }
+
+    public static boolean isForwardWaiting(long dialogId) {
+        return forwardWaitTarget.containsKey(dialogId);
+    }
+
+    public static boolean isForwardWaitingFor(long dialogId, long userId) {
+        Long waiting = forwardWaitUserId.get(dialogId);
+        return waiting != null && waiting == userId;
+    }
+
+    public static String getForwardTarget(long dialogId) {
+        return forwardWaitTarget.get(dialogId);
+    }
+
+    public static void clearForwardWait(long dialogId) {
+        forwardWaitTarget.remove(dialogId);
+        forwardWaitUserId.remove(dialogId);
+    }
 
     // Угадай кто написал — методы
     public static boolean isGuessGameActive(long dialogId) {
