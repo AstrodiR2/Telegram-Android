@@ -319,20 +319,6 @@ public class CommandHandler {
             });
         }
 
-        // [FORWARD:@username:message_id]
-        java.util.regex.Matcher fwdMatcher = java.util.regex.Pattern.compile("\\[FORWARD:(@?[^:\\]]+):(\\d+)\\]").matcher(result);
-        if (fwdMatcher.find()) {
-            String fwdUsername = fwdMatcher.group(1).trim().replaceAll("^@", "");
-            int fwdMsgId = Integer.parseInt(fwdMatcher.group(2).trim());
-            result = fwdMatcher.replaceAll("").trim();
-            final int finalMsgId = fwdMsgId;
-            final long finalDialogId2 = dialogId;
-            AndroidUtilities.runOnUIThread(() -> {
-                MessagesController.getInstance(account).getUserNameResolver().resolve(fwdUsername, (peerId) -> {
-                    if (peerId == null) {
-                        sendLocal(finalDialogId2, "❌ Не нашёл пользователя @" + fwdUsername);
-                        return;
-                    }
                     AndroidUtilities.runOnUIThread(() -> {
                         java.util.ArrayList<Integer> msgIds = new java.util.ArrayList<>();
                         msgIds.add(finalMsgId);
