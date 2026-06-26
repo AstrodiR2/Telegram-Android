@@ -21351,6 +21351,22 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (text != null && text.toLowerCase().contains("квас")) {
                     triggered = true;
                     CommandHandler.addLog("✅ Триггер: слово \"квас\" в сообщении");
+                    // Проверяем лимит цитаты
+                    String tl = text.toLowerCase();
+                    boolean isQuoteRequest = tl.contains("цитат") || tl.contains("мудрост") || tl.contains("вдохновен") || tl.contains("мотивац");
+                    if (isQuoteRequest && !AiManager.canSendQuoteToday(ApplicationLoader.applicationContext, dialogId)) {
+                        final long fDlgQ = dialogId;
+                        final MessageObject fMsgQ = msg;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                "Цитату уже давал сегодня. Завтра.", fDlgQ, fMsgQ, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                        });
+                        continue;
+                    }
+                    if (isQuoteRequest) {
+                        AiManager.markQuoteSentToday(ApplicationLoader.applicationContext, dialogId);
+                    }
                 }
                 if (text != null && msg.messageOwner.entities != null) {
                     for (int e = 0; e < msg.messageOwner.entities.size(); e++) {
