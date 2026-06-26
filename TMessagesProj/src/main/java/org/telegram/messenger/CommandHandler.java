@@ -319,19 +319,12 @@ public class CommandHandler {
             });
         }
 
-                    AndroidUtilities.runOnUIThread(() -> {
-                        java.util.ArrayList<Integer> msgIds = new java.util.ArrayList<>();
-                        msgIds.add(finalMsgId);
-                        java.util.ArrayList<Long> peerIds = new java.util.ArrayList<>();
-                        peerIds.add(finalDialogId2);
-                        SendMessagesHelper.getInstance(account).sendMessage(
-                            (java.util.ArrayList<org.telegram.tgnet.TLRPC.Message>) null,
-                            msgIds, peerIds, peerId, false, null, account
-                        );
-                        sendLocal(finalDialogId2, "✅ Переслал сообщение #" + finalMsgId + " → @" + fwdUsername);
-                    });
-                });
-            });
+
+        // [FORWARD:@username:message_id] - TODO: implement
+        java.util.regex.Matcher forwardMatcher = java.util.regex.Pattern.compile("\\[FORWARD:(@?[^:\\]]+):(\\d+)\\]").matcher(result);
+        if (forwardMatcher.find()) {
+            result = forwardMatcher.replaceAll("").trim();
+            sendLocal(dialogId, "⚠️ [FORWARD] пока не реализован");
         }
 
         // Проверяем есть ли блок кода
