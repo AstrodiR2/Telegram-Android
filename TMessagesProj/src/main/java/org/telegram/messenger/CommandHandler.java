@@ -244,7 +244,7 @@ public class CommandHandler {
         }
 
         // [SEND:@username:text]
-        java.util.regex.Matcher sendMatcher = java.util.regex.Pattern.compile("\[SEND:(@?[^:\]]+):([^\]]+)\]").matcher(result);
+        java.util.regex.Matcher sendMatcher = java.util.regex.Pattern.compile("\\[SEND:(@?[^:\\]]+):([^\\]]+)\\]").matcher(result);
         if (sendMatcher.find()) {
             String sendUsername = sendMatcher.group(1).trim().replaceAll("^@", "");
             String sendText = sendMatcher.group(2).trim();
@@ -266,8 +266,61 @@ public class CommandHandler {
             });
         }
 
+
+        // [READ_DM:@username:count]
+        java.util.regex.Matcher readMatcher = java.util.regex.Pattern.compile("\\[READ_DM:(@?[^:\\]]+)(?::(\\d+))?\\]").matcher(result);
+        if (readMatcher.find()) {
+            String readUsername = readMatcher.group(1).trim().replaceAll("^@", "");
+            int readCount = readMatcher.group(2) != null ? Integer.parseInt(readMatcher.group(2)) : 20;
+            result = readMatcher.replaceAll("").trim();
+            final int finalCount = Math.min(readCount, 50);
+            final long finalDialogId3 = dialogId;
+            AndroidUtilities.runOnUIThread(() -> {
+                MessagesController.getInstance(account).getUserNameResolver().resolve(readUsername, (peerId) -> {
+                    if (peerId == null) {
+                        sendLocal(finalDialogId3, "Ne nashel polzovatelya @" + readUsername);
+                        return;
+                    }
+                    AndroidUtilities.runOnUIThread(() -> {
+                        TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
+                        req.peer = MessagesController.getInstance(account).getInputPeer(peerId);
+                        req.limit = finalCount;
+                        req.offset_id = 0;
+                        req.offset_date = 0;
+                        req.add_offset = 0;
+                        req.max_id = 0;
+                        req.min_id = 0;
+                        req.hash = 0;
+                        ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                if (error != null || !(response instanceof TLRPC.messages_Messages)) {
+                                    sendLocal(finalDialogId3, "Oshibka chteniya LS @" + readUsername);
+                                    return;
+                                }
+                                TLRPC.messages_Messages msgs = (TLRPC.messages_Messages) response;
+                                if (msgs.messages.isEmpty()) {
+                                    sendLocal(finalDialogId3, "Net soobshcheniy s @" + readUsername);
+                                    return;
+                                }
+                                StringBuilder sb = new StringBuilder();
+                                sb.append("Poslednie ").append(msgs.messages.size()).append(" s @").append(readUsername).append(":\n\n");
+                                for (int i = msgs.messages.size() - 1; i >= 0; i--) {
+                                    TLRPC.Message msg = msgs.messages.get(i);
+                                    boolean isOut = (msg.flags & 2) != 0;
+                                    String sender = isOut ? "Ya" : "@" + readUsername;
+                                    String text = msg.message != null && !msg.message.isEmpty() ? msg.message : "[media]";
+                                    sb.append(sender).append(": ").append(text).append("\n");
+                                }
+                                sendLocal(finalDialogId3, sb.toString().trim());
+                            });
+                        });
+                    });
+                });
+            });
+        }
+
         // [FORWARD:@username:message_id]
-        java.util.regex.Matcher fwdMatcher = java.util.regex.Pattern.compile("\[FORWARD:(@?[^:\]]+):(\d+)\]").matcher(result);
+        java.util.regex.Matcher fwdMatcher = java.util.regex.Pattern.compile("\\[FORWARD:(@?[^:\\]]+):(\\d+)\\]").matcher(result);
         if (fwdMatcher.find()) {
             String fwdUsername = fwdMatcher.group(1).trim().replaceAll("^@", "");
             int fwdMsgId = Integer.parseInt(fwdMatcher.group(2).trim());
