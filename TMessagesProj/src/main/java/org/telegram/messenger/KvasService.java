@@ -7,9 +7,15 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.PowerManager;
 
 public class KvasService extends Service {
+    private PowerManager.WakeLock wakeLock;
+    private Handler keepAliveHandler;
+    private static final int KEEP_ALIVE_INTERVAL_MS = 30000;
 
     private static final String CHANNEL_ID = "kvas_bg_channel";
     private static final int NOTIF_ID = 9901;
@@ -31,6 +37,8 @@ public class KvasService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createChannel();
         scheduleNoonAlarm(this);
+        acquireWakeLock();
+        startKeepAlive();
         Notification notif = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("Квас активен")
                 .setContentText("Бот работает в фоне")
@@ -38,6 +46,36 @@ public class KvasService extends Service {
                 .build();
         startForeground(NOTIF_ID, notif);
         return START_STICKY;
+    }
+
+    private void acquireWakeLock() {
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "kvas:wakelock");
+            wakeLock.acquire();
+        }
+    }
+
+    private void startKeepAlive() {
+        keepAliveHandler = new Handler(Looper.getMainLooper());
+        keepAliveHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    for (int i = 0; i < 3; i++) {
+                        ConnectionsManager.getInstance(i).resumeNetworkMaybe();
+                    }
+                } catch (Exception e) {}
+                keepAliveHandler.postDelayed(this, KEEP_ALIVE_INTERVAL_MS);
+            }
+        }, KEEP_ALIVE_INTERVAL_MS);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        if (keepAliveHandler != null) keepAliveHandler.removeCallbacksAndMessages(null);
     }
 
     private void scheduleNoonAlarm(Context ctx) {
