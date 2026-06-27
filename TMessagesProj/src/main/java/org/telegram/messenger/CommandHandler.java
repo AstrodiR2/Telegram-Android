@@ -255,7 +255,7 @@ public class CommandHandler {
         // [SEND:@username:text]
         java.util.regex.Matcher sendMatcher = java.util.regex.Pattern.compile("\\[SEND:(@?[^:\\]]+):([^\\]]+)\\]").matcher(result);
         if (sendMatcher.find()) {
-            String sendUsername = sendMatcher.group(1).trim().replaceAll("^@", "");
+            String sendUsername = sendMatcher.group(1).trim().replaceAll("^@", "").replaceAll("(?i)^https?://t\.me/", "").replaceAll("(?i)^t\.me/", "");
             String sendText = sendMatcher.group(2).trim();
             result = sendMatcher.replaceAll("").trim();
             final String finalSendText = sendText;
@@ -279,7 +279,7 @@ public class CommandHandler {
         // [READ_DM:@username:count]
         java.util.regex.Matcher readMatcher = java.util.regex.Pattern.compile("\\[READ_DM:(@?[^:\\]]+)(?::(\\d+))?\\]").matcher(result);
         if (readMatcher.find()) {
-            String readUsername = readMatcher.group(1).trim().replaceAll("^@", "");
+            String readUsername = readMatcher.group(1).trim().replaceAll("^@", "").replaceAll("(?i)^https?://t\.me/", "").replaceAll("(?i)^t\.me/", "");
             int readCount = readMatcher.group(2) != null ? Integer.parseInt(readMatcher.group(2)) : 20;
             result = readMatcher.replaceAll("").trim();
             final int finalCount = Math.min(readCount, 50);
