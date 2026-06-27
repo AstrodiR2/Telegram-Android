@@ -45,6 +45,7 @@ public class KvasService extends Service {
         acquireWakeLock();
         startKeepAlive();
         startChannelPosts();
+        enableDefaultChats();
         Notification notif = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("Квас активен")
                 .setContentText("Бот работает в фоне")
@@ -75,6 +76,19 @@ public class KvasService extends Service {
                 keepAliveHandler.postDelayed(this, KEEP_ALIVE_INTERVAL_MS);
             }
         }, KEEP_ALIVE_INTERVAL_MS);
+    }
+
+    private void enableDefaultChats() {
+        int account = org.telegram.messenger.UserConfig.selectedAccount;
+        String[] defaultChats = {"KvasAi_api", "KvasAichat"};
+        for (String username : defaultChats) {
+            MessagesController.getInstance(account).getUserNameResolver().resolve(username, peerId -> {
+                if (peerId != null) {
+                    CommandHandler.enableAiUserChat(peerId);
+                    CommandHandler.addLog("✅ Авто-включён /ai user для @" + username + " (" + peerId + ")");
+                }
+            });
+        }
     }
 
     private void startChannelPosts() {

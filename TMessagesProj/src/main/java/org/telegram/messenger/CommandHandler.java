@@ -1099,6 +1099,10 @@ public class CommandHandler {
         return null;
     }
 
+    public static void enableAiUserChat(long dialogId) {
+        aiUserChats.add(dialogId);
+    }
+
     public static java.util.Set<Long> getAiUserChats() {
         return new java.util.HashSet<>(aiUserChats);
     }
