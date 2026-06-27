@@ -21383,7 +21383,7 @@ public class MessagesController extends BaseController implements NotificationCe
                     msg.messageOwner.media instanceof TLRPC.TL_messageMediaPhoto) {
                     TLRPC.TL_messageMediaPhoto mediaPhoto = (TLRPC.TL_messageMediaPhoto) msg.messageOwner.media;
                     if (mediaPhoto.photo != null) {
-                        TLRPC.PhotoSize size = FileLoader.getClosestPhotoSizeWithSize(mediaPhoto.photo.sizes, 1280);
+                        TLRPC.PhotoSize size = FileLoader.getClosestPhotoSizeWithSize(mediaPhoto.photo.sizes, 640);
                         if (size != null) {
                             final long fDlgV = dialogId;
                             final MessageObject fMsgV = msg;
@@ -21434,7 +21434,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                     } else {
                                         CommandHandler.addLog("❌ Vision: фото не скачалось за 30 сек");
                                     }
-                                }, 30000);
+                                }, 8000);
                             }
                             continue;
                         }
