@@ -358,9 +358,10 @@ public class CommandHandler {
             new Thread(() -> {
                 try {
                     String encoded = java.net.URLEncoder.encode(finalQuery, "UTF-8");
-                    java.net.URL u = new java.net.URL("https://api.duckduckgo.com/?q=" + encoded + "&iax=images&ia=images&format=json");
+                    // DDG image search via HTML scraping
+                    java.net.URL u = new java.net.URL("https://duckduckgo.com/?q=" + encoded + "&iax=images&ia=images");
                     java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
-                    c.setRequestProperty("User-Agent", "Mozilla/5.0");
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36");
                     c.setConnectTimeout(10000);
                     c.setReadTimeout(10000);
                     java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream()));
@@ -368,11 +369,28 @@ public class CommandHandler {
                     String line;
                     while ((line = br.readLine()) != null) sb.append(line);
                     br.close();
-                    org.json.JSONObject json = new org.json.JSONObject(sb.toString());
-                    org.json.JSONArray results = json.optJSONArray("Results");
+                    // Парсим vqd токен
+                    String html = sb.toString();
                     String imageUrl = null;
-                    if (results != null && results.length() > 0) {
-                        imageUrl = results.getJSONObject(0).optString("Image", null);
+                    java.util.regex.Matcher vqdM = java.util.regex.Pattern.compile("vqd=([\\d-]+)").matcher(html);
+                    if (vqdM.find()) {
+                        String vqd = vqdM.group(1);
+                        java.net.URL apiUrl2 = new java.net.URL("https://duckduckgo.com/i.js?q=" + encoded + "&vqd=" + vqd + "&o=json&p=1&s=0&u=bing&f=,,,,,&l=ru-ru");
+                        java.net.HttpURLConnection c2 = (java.net.HttpURLConnection) apiUrl2.openConnection();
+                        c2.setRequestProperty("User-Agent", "Mozilla/5.0");
+                        c2.setRequestProperty("Referer", "https://duckduckgo.com/");
+                        c2.setConnectTimeout(10000);
+                        c2.setReadTimeout(10000);
+                        java.io.BufferedReader br2 = new java.io.BufferedReader(new java.io.InputStreamReader(c2.getInputStream()));
+                        StringBuilder sb2 = new StringBuilder();
+                        String line2;
+                        while ((line2 = br2.readLine()) != null) sb2.append(line2);
+                        br2.close();
+                        org.json.JSONObject imgJson = new org.json.JSONObject(sb2.toString());
+                        org.json.JSONArray results = imgJson.optJSONArray("results");
+                        if (results != null && results.length() > 0) {
+                            imageUrl = results.getJSONObject(0).optString("image", null);
+                        }
                     }
                     if (imageUrl == null || imageUrl.isEmpty()) {
                         // fallback: просто отправить текст
