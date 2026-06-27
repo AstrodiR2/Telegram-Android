@@ -21439,7 +21439,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
                 // Триггер "квас перешли моё следующее @username"
                 if (textLow.contains("квас перешли") || textLow.contains("квас перекинь")) {
-                    java.util.regex.Matcher fwdM = java.util.regex.Pattern.compile("@([\w]+)").matcher(text);
+                    java.util.regex.Matcher fwdM = java.util.regex.Pattern.compile("@([\\w]+)").matcher(text);
                     String fwdTarget = null;
                     while (fwdM.find()) {
                         String u = fwdM.group(1);
@@ -21508,11 +21508,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         int[] sentId = {0};
                         SendMessagesHelper.getInstance(fCurrentAccount).sendMessage(
                             SendMessagesHelper.SendMessageParams.of(
-                                "Кто написал это сообщение? 🤔
-
-«" + fMsgText + "»
-
-Реплайте с ответом — у вас 60 секунд!",
+                                "\u041a\u0442\u043e \u043d\u0430\u043f\u0438\u0441\u0430\u043b \u044d\u0442\u043e \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435? \uD83E\uDD14\n\n\"" + fMsgText + "\"\n\n\u0420\u0435\u043f\u043b\u0430\u0439\u0442\u0435 \u0441 \u043e\u0442\u0432\u0435\u0442\u043e\u043c - \u0443 \u0432\u0430\u0441 60 \u0441\u0435\u043a\u0443\u043d\u0434!",
                                 fDlgGame, fMsgGame, null, null, false, null, null, null, false, 0, 0, null, false));
                         // Ждём чтобы получить ID сообщения — используем небольшую задержку
                         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
