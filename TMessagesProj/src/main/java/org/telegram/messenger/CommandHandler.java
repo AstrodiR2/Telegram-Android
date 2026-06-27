@@ -56,8 +56,9 @@ public class CommandHandler {
     private static final int DEDUP_CACHE_SIZE = 200;
 
     public static boolean isDuplicateMessage(long dialogId, int msgId) {
-        // Ключ только по msgId — одно сообщение не обрабатываем дважды
-        String key = String.valueOf(msgId);
+        // Ключ dialogId+msgId — одно сообщение из одного чата обрабатываем один раз
+        // Но из разных чатов (канал vs группа) — разные ключи
+        String key = dialogId + ":" + msgId;
         if (processedMsgKeys.contains(key)) return true;
         processedMsgKeys.add(key);
         if (processedMsgKeys.size() > DEDUP_CACHE_SIZE) {
@@ -376,7 +377,7 @@ public class CommandHandler {
                     java.util.regex.Matcher murlM = java.util.regex.Pattern.compile("murl&quot;:&quot;(https?://[^&]+)&quot;").matcher(html);
                     if (!murlM.find()) {
                         // fallback: ищем mediaurl
-                        murlM = java.util.regex.Pattern.compile(""murl":"(https?://[^"]+)"").matcher(html);
+                        murlM = java.util.regex.Pattern.compile("\"murl\":\"(https?://[^\"]+)\"").matcher(html);
                         murlM.find();
                     }
                     if (murlM.group(1) != null) {

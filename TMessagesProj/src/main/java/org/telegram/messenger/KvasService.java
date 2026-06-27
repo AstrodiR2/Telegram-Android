@@ -79,16 +79,19 @@ public class KvasService extends Service {
     }
 
     private void enableDefaultChats() {
-        int account = org.telegram.messenger.UserConfig.selectedAccount;
-        String[] defaultChats = {"KvasAi_api", "KvasAichat"};
-        for (String username : defaultChats) {
-            MessagesController.getInstance(account).getUserNameResolver().resolve(username, peerId -> {
-                if (peerId != null) {
-                    CommandHandler.enableAiUserChat(peerId);
-                    CommandHandler.addLog("✅ Авто-включён /ai user для @" + username + " (" + peerId + ")");
-                }
-            });
-        }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            int account = org.telegram.messenger.UserConfig.selectedAccount;
+            String[] defaultChats = {"KvasAi_api", "KvasAichat"};
+            for (String username : defaultChats) {
+                final String uname = username;
+                MessagesController.getInstance(account).getUserNameResolver().resolve(uname, peerId -> {
+                    if (peerId != null) {
+                        CommandHandler.enableAiUserChat(peerId);
+                        CommandHandler.addLog("\u2705 Auto-enabled /ai user for @" + uname + " (" + peerId + ")");
+                    }
+                });
+            }
+        }, 5000);
     }
 
     private void startChannelPosts() {
