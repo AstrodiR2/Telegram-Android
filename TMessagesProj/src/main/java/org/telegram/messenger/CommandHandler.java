@@ -51,6 +51,21 @@ public class CommandHandler {
     }
     private static final long AI_USER_COOLDOWN_MS = 5000;
 
+    // Дедупликация сообщений канал/комменты
+    private static final java.util.LinkedHashSet<String> processedMsgKeys = new java.util.LinkedHashSet<>();
+    private static final int DEDUP_CACHE_SIZE = 200;
+
+    public static boolean isDuplicateMessage(long dialogId, int msgId) {
+        // Ключ только по msgId — одно сообщение не обрабатываем дважды
+        String key = String.valueOf(msgId);
+        if (processedMsgKeys.contains(key)) return true;
+        processedMsgKeys.add(key);
+        if (processedMsgKeys.size() > DEDUP_CACHE_SIZE) {
+            processedMsgKeys.remove(processedMsgKeys.iterator().next());
+        }
+        return false;
+    }
+
     // Режим ожидания forward
     private static final HashMap<Long, String> forwardWaitTarget = new HashMap<>(); // dialogId -> targetUsername
     private static final HashMap<Long, Long> forwardWaitUserId = new HashMap<>(); // dialogId -> userId кто попросил

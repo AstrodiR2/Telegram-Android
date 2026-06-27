@@ -21228,6 +21228,9 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
                 String textLow = text != null ? text.toLowerCase() : "";
 
+                // Дедупликация — не отвечать дважды на одно сообщение (канал + комменты)
+                if (CommandHandler.isDuplicateMessage(dialogId, msg.getId())) continue;
+
                 // Перехват следующего сообщения для forward
                 if (CommandHandler.isForwardWaiting(dialogId)) {
                     long fromIdFwd = 0;
