@@ -308,11 +308,11 @@ public class CommandHandler {
                                 }
                                 TLRPC.messages_Messages msgs = (TLRPC.messages_Messages) response;
                                 if (msgs.messages.isEmpty()) {
-                                    sendLocal(finalDialogId3, "Net soobshcheniy s @" + readUsername);
+                                    sendLocal(finalDialogId3, "Нет сообщений с @" + readUsername);
                                     return;
                                 }
                                 StringBuilder sb = new StringBuilder();
-                                sb.append("Poslednie ").append(msgs.messages.size()).append(" s @").append(readUsername).append(":\n\n");
+                                sb.append("@").append(readUsername).append(":\n");
                                 for (int i = msgs.messages.size() - 1; i >= 0; i--) {
                                     TLRPC.Message msg = msgs.messages.get(i);
                                     boolean isOut = (msg.flags & 2) != 0;
@@ -326,8 +326,87 @@ public class CommandHandler {
                     });
                 });
             });
+            return;
         }
 
+
+        // [IMAGE:query] — найти и отправить картинку
+        java.util.regex.Matcher imageMatcher = java.util.regex.Pattern.compile("\\[IMAGE:([^\\]]+)\\]").matcher(result);
+        if (imageMatcher.find()) {
+            String imageQuery = imageMatcher.group(1).trim();
+            result = imageMatcher.replaceAll("").trim();
+            final String finalImageText = result;
+            final String finalQuery = imageQuery;
+            final long fDlgImg = dialogId;
+            final MessageObject fMsgImg = replyToMsg;
+            final int fAccImg = account;
+            new Thread(() -> {
+                try {
+                    String encoded = java.net.URLEncoder.encode(finalQuery, "UTF-8");
+                    java.net.URL u = new java.net.URL("https://api.duckduckgo.com/?q=" + encoded + "&iax=images&ia=images&format=json");
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0");
+                    c.setConnectTimeout(10000);
+                    c.setReadTimeout(10000);
+                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                    br.close();
+                    org.json.JSONObject json = new org.json.JSONObject(sb.toString());
+                    org.json.JSONArray results = json.optJSONArray("Results");
+                    String imageUrl = null;
+                    if (results != null && results.length() > 0) {
+                        imageUrl = results.getJSONObject(0).optString("Image", null);
+                    }
+                    if (imageUrl == null || imageUrl.isEmpty()) {
+                        // fallback: просто отправить текст
+                        final String ft = finalImageText;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(ft, fDlgImg, fMsgImg, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(fAccImg).sendMessage(p);
+                        });
+                        return;
+                    }
+                    // Скачиваем картинку
+                    java.net.URL imgUrl = new java.net.URL(imageUrl);
+                    java.net.HttpURLConnection ic = (java.net.HttpURLConnection) imgUrl.openConnection();
+                    ic.setRequestProperty("User-Agent", "Mozilla/5.0");
+                    ic.setConnectTimeout(10000);
+                    ic.setReadTimeout(15000);
+                    java.io.InputStream is = ic.getInputStream();
+                    java.io.File dir = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Telegram/ai_images");
+                    dir.mkdirs();
+                    java.io.File imgFile = new java.io.File(dir, "img_" + System.currentTimeMillis() + ".jpg");
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(imgFile);
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = is.read(buf)) != -1) fos.write(buf, 0, n);
+                    fos.close();
+                    is.close();
+                    final java.io.File finalImgFile = imgFile;
+                    final String finalCaption = finalImageText.isEmpty() ? null : finalImageText;
+                    AndroidUtilities.runOnUIThread(() -> {
+                        try {
+                            org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
+                            doc.mime_type = "image/jpeg";
+                            org.telegram.tgnet.TLRPC.TL_documentAttributeFilename attr = new org.telegram.tgnet.TLRPC.TL_documentAttributeFilename();
+                            attr.file_name = "image.jpg";
+                            doc.attributes.add(attr);
+                            org.telegram.tgnet.TLRPC.TL_documentAttributeImageSize imgAttr = new org.telegram.tgnet.TLRPC.TL_documentAttributeImageSize();
+                            doc.attributes.add(imgAttr);
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(doc, null, finalImgFile.getAbsolutePath(), fDlgImg, fMsgImg, null, finalCaption, null, null, null, true, 0, 0, 0, null, null, false);
+                            SendMessagesHelper.getInstance(fAccImg).sendMessage(p);
+                        } catch (Exception e) {
+                            addLog("❌ IMAGE отправка: " + e.getMessage());
+                        }
+                    });
+                } catch (Exception e) {
+                    addLog("❌ IMAGE поиск: " + e.getMessage());
+                }
+            }).start();
+            return;
+        }
 
         // [FORWARD:@username:message_id] - TODO: implement
         java.util.regex.Matcher forwardMatcher = java.util.regex.Pattern.compile("\\[FORWARD:(@?[^:\\]]+):(\\d+)\\]").matcher(result);
