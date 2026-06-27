@@ -432,27 +432,6 @@ public class AiManager {
 
     private static final String KEY_QUOTE_DATE = "ai_quote_date_";
 
-    public static void generateQuote(android.content.Context context, long dialogId) {
-        String quotePrompt = "Generate one short quote that sounds serious and deep but is actually a tautology, broken logic, or obvious nonsense. Examples: \"One mistake and you've made a mistake\", \"If you were wronged unfairly — go and deserve it\". Reply in Russian. Just the quote itself, no author, no explanation, no quote marks.";
-        ask(context, dialogId, quotePrompt, new AiCallback() {
-            @Override
-            public void onResult(String result) {
-                markQuoteSentToday(context, dialogId);
-                final long fDlg = dialogId;
-                final String fResult = result;
-                org.telegram.ui.ActionBar.BaseFragment.postUIRunnable(() -> {
-                    SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
-                        "💬 " + fResult, fDlg, null, null, null, false, null, null, null, false, 0, 0, null, false);
-                    SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(p);
-                });
-            }
-            @Override
-            public void onError(String error) {
-                addLog("❌ generateQuote: " + error);
-            }
-        });
-    }
-
     public static boolean canSendQuoteToday(android.content.Context context, long dialogId) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("ai_settings", android.content.Context.MODE_PRIVATE);
         String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
@@ -465,6 +444,30 @@ public class AiManager {
         String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
         prefs.edit().putString(KEY_QUOTE_DATE + dialogId, today).apply();
     }
+
+    public static void generateQuote(android.content.Context context, long dialogId) {
+        String quotePrompt = "Generate one short quote that sounds serious and deep but is actually a tautology, broken logic, or obvious nonsense. Examples: 'One mistake and you made a mistake', 'If you were wronged unfairly - go and deserve it'. Reply in Russian. Just the quote itself, no author, no explanation, no quote marks.";
+        ask(context, dialogId, quotePrompt, new AiCallback() {
+            @Override
+            public void onResult(String result) {
+                markQuoteSentToday(context, dialogId);
+                final long fDlg = dialogId;
+                final String fRes = result;
+                AndroidUtilities.runOnUIThread(() -> {
+                    SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                        "\uD83D\uDCAC " + fRes, fDlg, null, null, null, false, null, null, null, false, 0, 0, null, false);
+                    SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(p);
+                });
+            }
+            @Override
+            public void onError(String error) {
+                CommandHandler.addLog("generateQuote error: " + error);
+            }
+        });
+    }
+
+    private static final String KEY_QUOTE_DATE = "ai_quote_date_";
+
 
     public static String getLongMemory(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
