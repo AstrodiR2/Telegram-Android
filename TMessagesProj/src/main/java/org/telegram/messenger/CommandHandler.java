@@ -358,39 +358,29 @@ public class CommandHandler {
             new Thread(() -> {
                 try {
                     String encoded = java.net.URLEncoder.encode(finalQuery, "UTF-8");
-                    // DDG image search via HTML scraping
-                    java.net.URL u = new java.net.URL("https://duckduckgo.com/?q=" + encoded + "&iax=images&ia=images");
+                    // Bing image search HTML scraping
+                    String imageUrl = null;
+                    java.net.URL u = new java.net.URL("https://www.bing.com/images/search?q=" + encoded + "&form=HDRSC2&first=1");
                     java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
-                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36");
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+                    c.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
                     c.setConnectTimeout(10000);
                     c.setReadTimeout(10000);
-                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream()));
+                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
                     StringBuilder sb = new StringBuilder();
                     String line;
                     while ((line = br.readLine()) != null) sb.append(line);
                     br.close();
-                    // Парсим vqd токен
                     String html = sb.toString();
-                    String imageUrl = null;
-                    java.util.regex.Matcher vqdM = java.util.regex.Pattern.compile("vqd=([\\d-]+)").matcher(html);
-                    if (vqdM.find()) {
-                        String vqd = vqdM.group(1);
-                        java.net.URL apiUrl2 = new java.net.URL("https://duckduckgo.com/i.js?q=" + encoded + "&vqd=" + vqd + "&o=json&p=1&s=0&u=bing&f=,,,,,&l=ru-ru");
-                        java.net.HttpURLConnection c2 = (java.net.HttpURLConnection) apiUrl2.openConnection();
-                        c2.setRequestProperty("User-Agent", "Mozilla/5.0");
-                        c2.setRequestProperty("Referer", "https://duckduckgo.com/");
-                        c2.setConnectTimeout(10000);
-                        c2.setReadTimeout(10000);
-                        java.io.BufferedReader br2 = new java.io.BufferedReader(new java.io.InputStreamReader(c2.getInputStream()));
-                        StringBuilder sb2 = new StringBuilder();
-                        String line2;
-                        while ((line2 = br2.readLine()) != null) sb2.append(line2);
-                        br2.close();
-                        org.json.JSONObject imgJson = new org.json.JSONObject(sb2.toString());
-                        org.json.JSONArray results = imgJson.optJSONArray("results");
-                        if (results != null && results.length() > 0) {
-                            imageUrl = results.getJSONObject(0).optString("image", null);
-                        }
+                    // Парсим murl (прямые ссылки на изображения)
+                    java.util.regex.Matcher murlM = java.util.regex.Pattern.compile("murl&quot;:&quot;(https?://[^&]+)&quot;").matcher(html);
+                    if (!murlM.find()) {
+                        // fallback: ищем mediaurl
+                        murlM = java.util.regex.Pattern.compile(""murl":"(https?://[^"]+)"").matcher(html);
+                        murlM.find();
+                    }
+                    if (murlM.group(1) != null) {
+                        imageUrl = murlM.group(1).replace("&amp;", "&");
                     }
                     if (imageUrl == null || imageUrl.isEmpty()) {
                         // fallback: просто отправить текст
