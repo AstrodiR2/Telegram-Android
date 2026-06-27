@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
+import org.telegram.tgnet.ConnectionsManager;
 
 public class KvasService extends Service {
     private PowerManager.WakeLock wakeLock;

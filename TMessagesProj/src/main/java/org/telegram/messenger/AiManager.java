@@ -466,7 +466,7 @@ public class AiManager {
         });
     }
 
-    private static final String KEY_QUOTE_DATE = "ai_quote_date_";
+
 
 
     public static String getLongMemory(Context context) {
