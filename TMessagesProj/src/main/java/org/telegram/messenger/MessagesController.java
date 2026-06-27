@@ -21606,12 +21606,20 @@ public class MessagesController extends BaseController implements NotificationCe
                 final String finalText = text != null ? text : "";
                 if (curRole == 4) {
                     long fromId4 = 0;
+                    String senderName4 = "Unknown";
+                    String senderUsername4 = null;
                     if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
                         fromId4 = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                        TLRPC.User sender4 = fromId4 != 0 ? getMessagesController().getUser(fromId4) : null;
+                        senderName4 = sender4 != null && sender4.first_name != null ? sender4.first_name : "Unknown";
+                        senderUsername4 = sender4 != null ? sender4.username : null;
+                    } else if (msg.messageOwner.from_id instanceof TLRPC.TL_peerChannel) {
+                        long channelId4 = ((TLRPC.TL_peerChannel) msg.messageOwner.from_id).channel_id;
+                        TLRPC.Chat channel4 = getMessagesController().getChat(channelId4);
+                        senderName4 = channel4 != null && channel4.title != null ? channel4.title : "Channel";
+                        senderUsername4 = channel4 != null ? channel4.username : null;
+                        fromId4 = -channelId4;
                     }
-                    TLRPC.User sender4 = fromId4 != 0 ? getMessagesController().getUser(fromId4) : null;
-                    String senderName4 = sender4 != null && sender4.first_name != null ? sender4.first_name : "Unknown";
-                    String senderUsername4 = sender4 != null ? sender4.username : null;
                     final long finalFromId4 = fromId4;
                     final String finalName4 = senderName4;
                     final String finalUname4 = senderUsername4;
