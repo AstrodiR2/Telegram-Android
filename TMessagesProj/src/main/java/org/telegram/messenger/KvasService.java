@@ -17,6 +17,10 @@ public class KvasService extends Service {
     private PowerManager.WakeLock wakeLock;
     private Handler keepAliveHandler;
     private static final int KEEP_ALIVE_INTERVAL_MS = 30000;
+    private Handler channelPostHandler;
+    private static final String CHANNEL_USERNAME = "KvasAi_api";
+    private static final long MIN_POST_INTERVAL_MS = 15 * 60 * 1000L; // 15 минут
+    private static final long MAX_POST_INTERVAL_MS = 60 * 60 * 1000L; // 60 минут
 
     private static final String CHANNEL_ID = "kvas_bg_channel";
     private static final int NOTIF_ID = 9901;
@@ -40,6 +44,7 @@ public class KvasService extends Service {
         scheduleNoonAlarm(this);
         acquireWakeLock();
         startKeepAlive();
+        startChannelPosts();
         Notification notif = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("Квас активен")
                 .setContentText("Бот работает в фоне")
@@ -72,11 +77,55 @@ public class KvasService extends Service {
         }, KEEP_ALIVE_INTERVAL_MS);
     }
 
+    private void startChannelPosts() {
+        channelPostHandler = new Handler(Looper.getMainLooper());
+        scheduleNextPost();
+    }
+
+    private void scheduleNextPost() {
+        long delay = MIN_POST_INTERVAL_MS + (long)(Math.random() * (MAX_POST_INTERVAL_MS - MIN_POST_INTERVAL_MS));
+        channelPostHandler.postDelayed(() -> {
+            postToChannel();
+            scheduleNextPost();
+        }, delay);
+    }
+
+    private void postToChannel() {
+        int account = org.telegram.messenger.UserConfig.selectedAccount;
+        MessagesController.getInstance(account).getUserNameResolver().resolve(CHANNEL_USERNAME, peerId -> {
+            if (peerId == null) return;
+            String[] prompts = {
+                "Generate a short funny joke in Russian. Just the joke, no intro.",
+                "Generate a short philosophical thought in Russian. Casual tone, 1-2 sentences.",
+                "Generate a short absurd observation about life in Russian. Casual, funny.",
+                "Generate a random interesting fact in Russian. Short, 1-2 sentences.",
+                "Generate a short sarcastic comment about modern life in Russian."
+            };
+            String prompt = prompts[(int)(Math.random() * prompts.length)];
+            final long finalPeerId = peerId;
+            AiManager.ask(ApplicationLoader.applicationContext, finalPeerId, prompt, new AiManager.AiCallback() {
+                @Override
+                public void onResult(String result) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                            result, finalPeerId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+                        SendMessagesHelper.getInstance(account).sendMessage(p);
+                    });
+                }
+                @Override
+                public void onError(String error) {
+                    CommandHandler.addLog("❌ channelPost: " + error);
+                }
+            });
+        });
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         if (keepAliveHandler != null) keepAliveHandler.removeCallbacksAndMessages(null);
+        if (channelPostHandler != null) channelPostHandler.removeCallbacksAndMessages(null);
     }
 
     private void scheduleNoonAlarm(Context ctx) {
