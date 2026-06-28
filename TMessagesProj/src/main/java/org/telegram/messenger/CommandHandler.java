@@ -29,6 +29,8 @@ public class CommandHandler {
     private static final HashSet<Long> aiUserChats = new HashSet<>();
     private static final HashMap<Long, Long> aiUserCooldown = new HashMap<>();
     private static final HashMap<Long, java.util.LinkedList<String>> groupMessageCache = new HashMap<>();
+    private static final java.util.LinkedList<String[]> globalMessageCache = new java.util.LinkedList<>();
+    private static final int GLOBAL_CACHE_SIZE = 50;
     private static volatile String lastAiError = null;
     private static final int GROUP_CACHE_SIZE = 60;
     private static final HashMap<Long, LinkedList<Integer>> myMessageIdsCache = new HashMap<>();
@@ -1002,6 +1004,41 @@ public class CommandHandler {
         }
         cache.addLast(entry);
         if (cache.size() > GROUP_CACHE_SIZE) cache.removeFirst();
+        // Глобальный кэш
+        synchronized (globalMessageCache) {
+            String chatName = getChatName(dialogId);
+            globalMessageCache.addLast(new String[]{String.valueOf(dialogId), chatName, entry});
+            if (globalMessageCache.size() > GLOBAL_CACHE_SIZE) globalMessageCache.removeFirst();
+        }
+    }
+
+    private static String getChatName(long dialogId) {
+        try {
+            int account = UserConfig.selectedAccount;
+            if (dialogId < 0) {
+                long chatId = -dialogId;
+                org.telegram.tgnet.TLRPC.Chat chat = MessagesController.getInstance(account).getChat(chatId);
+                if (chat != null && chat.title != null) return chat.title;
+            } else {
+                org.telegram.tgnet.TLRPC.User user = MessagesController.getInstance(account).getUser(dialogId);
+                if (user != null) return org.telegram.messenger.UserObject.getFirstName(user);
+            }
+        } catch (Exception e) {}
+        return "Чат " + dialogId;
+    }
+
+    public static String getGlobalHistory(long excludeDialogId) {
+        synchronized (globalMessageCache) {
+            if (globalMessageCache.isEmpty()) return "";
+            StringBuilder sb = new StringBuilder();
+            for (String[] entry : globalMessageCache) {
+                if (!entry[0].equals(String.valueOf(excludeDialogId))) {
+                    sb.append("[").append(entry[1]).append("] ").append(entry[2]).append("
+");
+                }
+            }
+            return sb.toString().trim();
+        }
     }
 
     public static String getGroupHistory(long dialogId) {
