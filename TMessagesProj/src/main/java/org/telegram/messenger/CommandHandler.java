@@ -373,7 +373,7 @@ public class CommandHandler {
                     while ((line = br.readLine()) != null) sb.append(line);
                     br.close();
                     String json = sb.toString();
-                    java.util.regex.Matcher murlM = java.util.regex.Pattern.compile("\"link\":\s*\"(https?://[^\"]+)\"").matcher(json);
+                    java.util.regex.Matcher murlM = java.util.regex.Pattern.compile("\"link\":[ ]*\"(https?://[^\"]+)\"").matcher(json);
                     if (murlM.find()) {
                         imageUrl = murlM.group(1);
                     }
@@ -1033,8 +1033,7 @@ public class CommandHandler {
             StringBuilder sb = new StringBuilder();
             for (String[] entry : globalMessageCache) {
                 if (!entry[0].equals(String.valueOf(excludeDialogId))) {
-                    sb.append("[").append(entry[1]).append("] ").append(entry[2]).append("
-");
+                    sb.append("[").append(entry[1]).append("] ").append(entry[2]).append("\n");
                 }
             }
             return sb.toString().trim();
