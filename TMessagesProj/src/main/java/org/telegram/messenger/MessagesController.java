@@ -21434,7 +21434,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                     } else {
                                         CommandHandler.addLog("❌ Vision: фото не скачалось за 30 сек");
                                     }
-                                }, 8000);
+                                }, 30000);
                             }
                             continue;
                         }
