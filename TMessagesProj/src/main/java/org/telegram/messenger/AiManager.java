@@ -312,6 +312,91 @@ public class AiManager {
                                 new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fb));
                             }
                         });
+                        } else if (java.util.regex.Pattern.compile("\\[READ_DM:([^\\]]+)\\]").matcher(result).find()) {
+                            java.util.regex.Matcher readDmMatcher = java.util.regex.Pattern.compile("\\[READ_DM:(@?[^:\\]]+)(?::(\\d+))?\\]").matcher(result);
+                            readDmMatcher.find();
+                            String rdUsername = readDmMatcher.group(1).trim().replaceAll("^@", "");
+                            int rdCount = readDmMatcher.group(2) != null ? Integer.parseInt(readDmMatcher.group(2)) : 20;
+                            String cleanBeforeRd = cleanFinal.replaceAll("\\[READ_DM:[^\\]]*\\]", "").trim();
+                            final int fRdCount = Math.min(rdCount, 50);
+                            final String fRdUser = rdUsername;
+                            final String fCleanRd = cleanBeforeRd;
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                MessagesController.getInstance(UserConfig.selectedAccount).getUserNameResolver().resolve(fRdUser, (peerId) -> {
+                                    if (peerId == null) { callback.onResult(fCleanRd); return; }
+                                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                        org.telegram.tgnet.TLRPC.TL_messages_getHistory req = new org.telegram.tgnet.TLRPC.TL_messages_getHistory();
+                                        req.peer = MessagesController.getInstance(UserConfig.selectedAccount).getInputPeer(peerId);
+                                        req.limit = fRdCount; req.offset_id = 0; req.offset_date = 0;
+                                        req.add_offset = 0; req.max_id = 0; req.min_id = 0; req.hash = 0;
+                                        ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
+                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                                if (error != null || !(response instanceof org.telegram.tgnet.TLRPC.messages_Messages)) {
+                                                    callback.onResult(fCleanRd); return;
+                                                }
+                                                org.telegram.tgnet.TLRPC.messages_Messages msgs = (org.telegram.tgnet.TLRPC.messages_Messages) response;
+                                                StringBuilder sbRd = new StringBuilder();
+                                                sbRd.append("@").append(fRdUser).append(":\n");
+                                                for (int i = msgs.messages.size() - 1; i >= 0; i--) {
+                                                    org.telegram.tgnet.TLRPC.Message msg = msgs.messages.get(i);
+                                                    boolean isOut = (msg.flags & 2) != 0;
+                                                    String sender = isOut ? "Ya" : "@" + fRdUser;
+                                                    String txt = msg.message != null && !msg.message.isEmpty() ? msg.message : "[media]";
+                                                    sbRd.append(sender).append(": ").append(txt).append("\n");
+                                                }
+                                                String dmContext = sbRd.toString().trim();
+                                                String newQ = "[DM history with @" + fRdUser + "]:\n" + dmContext + "\n\nНа основе этой переписки ответь на вопрос пользователя.";
+                                                new Thread(() -> {
+                                                    try {
+                                                        String ep2 = apiUrl.endsWith("/") ? apiUrl + "chat/completions" : apiUrl + "/chat/completions";
+                                                        java.net.URL url2 = new java.net.URL(ep2);
+                                                        java.net.HttpURLConnection conn2 = (java.net.HttpURLConnection) url2.openConnection();
+                                                        conn2.setRequestMethod("POST");
+                                                        conn2.setRequestProperty("Content-Type", "application/json");
+                                                        conn2.setRequestProperty("Authorization", "Bearer " + token);
+                                                        conn2.setDoOutput(true);
+                                                        conn2.setConnectTimeout(15000);
+                                                        conn2.setReadTimeout(30000);
+                                                        org.json.JSONObject body2 = new org.json.JSONObject();
+                                                        body2.put("model", model);
+                                                        org.json.JSONArray msgs2 = new org.json.JSONArray();
+                                                        org.json.JSONObject sys2 = new org.json.JSONObject();
+                                                        sys2.put("role", "system"); sys2.put("content", systemPrompt);
+                                                        msgs2.put(sys2);
+                                                        org.json.JSONArray hist2 = getHistory(context, dialogId);
+                                                        for (int i = 0; i < hist2.length(); i++) msgs2.put(hist2.getJSONObject(i));
+                                                        org.json.JSONObject uMsg2 = new org.json.JSONObject();
+                                                        uMsg2.put("role", "user"); uMsg2.put("content", newQ);
+                                                        msgs2.put(uMsg2);
+                                                        body2.put("messages", msgs2);
+                                                        body2.put("max_tokens", 1200);
+                                                        byte[] inp2 = body2.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                                        conn2.getOutputStream().write(inp2);
+                                                        conn2.getOutputStream().close();
+                                                        int code2 = conn2.getResponseCode();
+                                                        java.io.BufferedReader br2 = new java.io.BufferedReader(new java.io.InputStreamReader(code2 == 200 ? conn2.getInputStream() : conn2.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8));
+                                                        StringBuilder sb2rd = new StringBuilder();
+                                                        String l2;
+                                                        while ((l2 = br2.readLine()) != null) sb2rd.append(l2);
+                                                        br2.close();
+                                                        if (code2 == 200) {
+                                                            org.json.JSONObject resp2 = new org.json.JSONObject(sb2rd.toString());
+                                                            String res2 = resp2.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
+                                                            res2 = res2.replaceAll("\\[READ_DM:[^\\]]*\\]", "").trim();
+                                                            final String fr2 = res2;
+                                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr2));
+                                                        } else {
+                                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fCleanRd));
+                                                        }
+                                                    } catch (Exception e2) {
+                                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fCleanRd));
+                                                    }
+                                                }).start();
+                                            });
+                                        });
+                                    });
+                                });
+                            });
                         } else {
                         final String fr = cleanFinal;
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.onResult(fr));
