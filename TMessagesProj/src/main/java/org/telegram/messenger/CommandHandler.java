@@ -358,12 +358,11 @@ public class CommandHandler {
             new Thread(() -> {
                 try {
                     String encoded = java.net.URLEncoder.encode(finalQuery, "UTF-8");
-                    // Bing image search HTML scraping
+                    // Google Custom Search API
                     String imageUrl = null;
-                    java.net.URL u = new java.net.URL("https://www.bing.com/images/search?q=" + encoded + "&form=HDRSC2&first=1");
+                    String apiUrlImg = "https://www.googleapis.com/customsearch/v1?key=AIzaSyBZHm7dlacofpt2g3-5tRqhvmXh5ibOw2E&cx=14e8cd0fe7ebf4dc9&q=" + encoded + "&searchType=image&num=1&safe=off";
+                    java.net.URL u = new java.net.URL(apiUrlImg);
                     java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
-                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-                    c.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
                     c.setConnectTimeout(10000);
                     c.setReadTimeout(10000);
                     java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
@@ -371,16 +370,10 @@ public class CommandHandler {
                     String line;
                     while ((line = br.readLine()) != null) sb.append(line);
                     br.close();
-                    String html = sb.toString();
-                    // Парсим murl (прямые ссылки на изображения)
-                    java.util.regex.Matcher murlM = java.util.regex.Pattern.compile("murl&quot;:&quot;(https?://[^&]+)&quot;").matcher(html);
-                    if (!murlM.find()) {
-                        // fallback: ищем mediaurl
-                        murlM = java.util.regex.Pattern.compile("\"murl\":\"(https?://[^\"]+)\"").matcher(html);
-                        murlM.find();
-                    }
-                    if (murlM.group(1) != null) {
-                        imageUrl = murlM.group(1).replace("&amp;", "&");
+                    String json = sb.toString();
+                    java.util.regex.Matcher murlM = java.util.regex.Pattern.compile("\"link\":\s*\"(https?://[^\"]+)\"").matcher(json);
+                    if (murlM.find()) {
+                        imageUrl = murlM.group(1);
                     }
                     if (imageUrl == null || imageUrl.isEmpty()) {
                         // fallback: просто отправить текст
@@ -398,7 +391,7 @@ public class CommandHandler {
                     ic.setConnectTimeout(10000);
                     ic.setReadTimeout(15000);
                     java.io.InputStream is = ic.getInputStream();
-                    java.io.File dir = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Telegram/ai_images");
+                    java.io.File dir = new java.io.File(ApplicationLoader.applicationContext.getCacheDir(), "ai_images");
                     dir.mkdirs();
                     java.io.File imgFile = new java.io.File(dir, "img_" + System.currentTimeMillis() + ".jpg");
                     java.io.FileOutputStream fos = new java.io.FileOutputStream(imgFile);
