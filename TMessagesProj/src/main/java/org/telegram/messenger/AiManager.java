@@ -330,16 +330,16 @@ public class AiManager {
                                         req.peer = MessagesController.getInstance(UserConfig.selectedAccount).getInputPeer(peerId);
                                         req.limit = fRdCount; req.offset_id = 0; req.offset_date = 0;
                                         req.add_offset = 0; req.max_id = 0; req.min_id = 0; req.hash = 0;
-                                        ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
+                                        org.telegram.tgnet.ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
                                             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                                                 if (error != null || !(response instanceof org.telegram.tgnet.TLRPC.messages_Messages)) {
                                                     callback.onResult(fCleanRd); return;
                                                 }
-                                                org.telegram.tgnet.TLRPC.messages_Messages msgs = (org.telegram.tgnet.TLRPC.messages_Messages) response;
+                                                org.telegram.tgnet.TLRPC.messages_Messages rdMsgs = (org.telegram.tgnet.TLRPC.messages_Messages) response;
                                                 StringBuilder sbRd = new StringBuilder();
                                                 sbRd.append("@").append(fRdUser).append(":\n");
-                                                for (int i = msgs.messages.size() - 1; i >= 0; i--) {
-                                                    org.telegram.tgnet.TLRPC.Message msg = msgs.messages.get(i);
+                                                for (int i = rdMsgs.messages.size() - 1; i >= 0; i--) {
+                                                    org.telegram.tgnet.TLRPC.Message msg = rdMsgs.messages.get(i);
                                                     boolean isOut = (msg.flags & 2) != 0;
                                                     String sender = isOut ? "Ya" : "@" + fRdUser;
                                                     String txt = msg.message != null && !msg.message.isEmpty() ? msg.message : "[media]";
