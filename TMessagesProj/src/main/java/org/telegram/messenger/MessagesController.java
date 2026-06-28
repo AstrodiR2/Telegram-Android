@@ -21133,6 +21133,20 @@ public class MessagesController extends BaseController implements NotificationCe
                 MessageObject gmsg = messages.get(gi);
                 if (gmsg.isOut()) continue;
                 String gtext = gmsg.messageOwner != null ? gmsg.messageOwner.message : null;
+                if ((gtext == null || gtext.isEmpty()) && gmsg.messageOwner != null && gmsg.messageOwner.media instanceof TLRPC.TL_messageMediaDocument) {
+                    TLRPC.Document doc = ((TLRPC.TL_messageMediaDocument) gmsg.messageOwner.media).document;
+                    if (doc != null) {
+                        for (int ai = 0; ai < doc.attributes.size(); ai++) {
+                            if (doc.attributes.get(ai) instanceof TLRPC.TL_documentAttributeSticker) {
+                                TLRPC.TL_documentAttributeSticker sa = (TLRPC.TL_documentAttributeSticker) doc.attributes.get(ai);
+                                String stickerEmoji = sa.alt != null && !sa.alt.isEmpty() ? sa.alt : "";
+                                String stickerSet = (sa.stickerset instanceof TLRPC.TL_inputStickerSetID || sa.stickerset instanceof TLRPC.TL_inputStickerSetShortName) ? "" : "";
+                                gtext = "[стикер " + stickerEmoji + "]";
+                                break;
+                            }
+                        }
+                    }
+                }
                 if (gtext == null || gtext.isEmpty()) continue;
                 long fromId = 0;
                 if (gmsg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
