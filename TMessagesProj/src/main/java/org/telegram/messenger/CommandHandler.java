@@ -426,6 +426,59 @@ public class CommandHandler {
             return;
         }
 
+        // [STICKER:emoji]
+        java.util.regex.Matcher stickerMatcher = java.util.regex.Pattern.compile("\\[STICKER:([^\\]]+)\\]").matcher(result);
+        if (stickerMatcher.find()) {
+            String stickerEmoji = stickerMatcher.group(1).trim();
+            result = stickerMatcher.replaceAll("").trim();
+            final String finalStickerText = result;
+            final String finalEmoji = stickerEmoji;
+            final long fDlgSticker = dialogId;
+            final MessageObject fMsgSticker = replyToMsg;
+            final int fAccSticker = account;
+            AndroidUtilities.runOnUIThread(() -> {
+                TLRPC.TL_inputStickerSetShortName inputSet = new TLRPC.TL_inputStickerSetShortName();
+                inputSet.short_name = "StikeryOposud";
+                MediaDataController.getInstance(fAccSticker).getStickerSet(inputSet, 0, false, false, stickerSet -> {
+                    if (stickerSet == null || stickerSet.documents == null) {
+                        if (!finalStickerText.isEmpty()) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(finalStickerText, fDlgSticker, fMsgSticker, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(fAccSticker).sendMessage(p);
+                            });
+                        }
+                        return;
+                    }
+                    TLRPC.Document found = null;
+                    for (int si = 0; si < stickerSet.documents.size(); si++) {
+                        TLRPC.Document doc = stickerSet.documents.get(si);
+                        for (int ai = 0; ai < doc.attributes.size(); ai++) {
+                            if (doc.attributes.get(ai) instanceof TLRPC.TL_documentAttributeSticker) {
+                                TLRPC.TL_documentAttributeSticker sa = (TLRPC.TL_documentAttributeSticker) doc.attributes.get(ai);
+                                if (finalEmoji.equals(sa.alt)) { found = doc; break; }
+                            }
+                        }
+                        if (found != null) break;
+                    }
+                    if (found == null && !stickerSet.documents.isEmpty()) {
+                        found = stickerSet.documents.get(0);
+                    }
+                    final TLRPC.Document finalDoc = found;
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (finalDoc != null) {
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(finalDoc, null, null, fDlgSticker, fMsgSticker, null, null, null, null, null, true, 0, 0, 0, null, null, false);
+                            SendMessagesHelper.getInstance(fAccSticker).sendMessage(p);
+                        }
+                        if (!finalStickerText.isEmpty()) {
+                            SendMessagesHelper.SendMessageParams p2 = SendMessagesHelper.SendMessageParams.of(finalStickerText, fDlgSticker, fMsgSticker, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(fAccSticker).sendMessage(p2);
+                        }
+                    });
+                });
+            });
+            return;
+        }
+
         // [FORWARD:@username:message_id] - TODO: implement
         java.util.regex.Matcher forwardMatcher = java.util.regex.Pattern.compile("\\[FORWARD:(@?[^:\\]]+):(\\d+)\\]").matcher(result);
         if (forwardMatcher.find()) {
