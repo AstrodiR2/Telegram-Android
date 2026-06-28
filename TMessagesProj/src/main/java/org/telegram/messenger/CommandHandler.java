@@ -56,9 +56,8 @@ public class CommandHandler {
     private static final int DEDUP_CACHE_SIZE = 200;
 
     public static boolean isDuplicateMessage(long dialogId, int msgId) {
-        // Ключ dialogId+msgId — одно сообщение из одного чата обрабатываем один раз
-        // Но из разных чатов (канал vs группа) — разные ключи
-        String key = dialogId + ":" + msgId;
+        // Только msgId — канал и группа комментов дают одинаковый msgId
+        String key = String.valueOf(msgId);
         if (processedMsgKeys.contains(key)) return true;
         processedMsgKeys.add(key);
         if (processedMsgKeys.size() > DEDUP_CACHE_SIZE) {
