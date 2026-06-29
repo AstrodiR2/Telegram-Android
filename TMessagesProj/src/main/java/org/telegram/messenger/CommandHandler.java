@@ -835,6 +835,26 @@ public class CommandHandler {
                 Toast.makeText(ctx, "❌ @" + fu + " убран из whitelist", Toast.LENGTH_SHORT).show());
             return;
         }
+        if (argTrimmed.startsWith("suspect ")) {
+            String fu = argTrimmed.substring("suspect ".length()).trim().toLowerCase().replace("@", "");
+            if (!fu.isEmpty()) {
+                suspectUsernames.add(fu);
+                saveLists(ApplicationLoader.applicationContext);
+                final String fuu = fu;
+                AndroidUtilities.runOnUIThread(() -> Toast.makeText(ApplicationLoader.applicationContext, "⚠️ @" + fuu + " под подозрением", Toast.LENGTH_SHORT).show());
+            }
+            return;
+        }
+        if (argTrimmed.startsWith("unsuspect ")) {
+            String fu = argTrimmed.substring("unsuspect ".length()).trim().toLowerCase().replace("@", "");
+            if (!fu.isEmpty()) {
+                suspectUsernames.remove(fu);
+                saveLists(ApplicationLoader.applicationContext);
+                final String fuu = fu;
+                AndroidUtilities.runOnUIThread(() -> Toast.makeText(ApplicationLoader.applicationContext, "✅ @" + fuu + " убран из подозрений", Toast.LENGTH_SHORT).show());
+            }
+            return;
+        }
         if (argTrimmed.startsWith("block ")) {
             String uname = argTrimmed.substring(6).trim();
             addBlacklist(uname);
@@ -1122,6 +1142,29 @@ public class CommandHandler {
     private static final HashMap<Long, java.util.HashSet<Long>> rudeUsers = new HashMap<>();
     private static final java.util.HashSet<String> whitelistUsernames = new java.util.HashSet<>();
     private static final java.util.HashSet<String> blacklistUsernames = new java.util.HashSet<>();
+    private static final java.util.HashSet<String> suspectUsernames = new java.util.HashSet<>();
+    private static final String PREFS_LISTS = "kvas_lists";
+
+    public static void loadLists(android.content.Context ctx) {
+        android.content.SharedPreferences p = ctx.getSharedPreferences(PREFS_LISTS, android.content.Context.MODE_PRIVATE);
+        whitelistUsernames.clear(); blacklistUsernames.clear(); suspectUsernames.clear();
+        for (String s : p.getStringSet("whitelist", new java.util.HashSet<>()))  whitelistUsernames.add(s);
+        for (String s : p.getStringSet("blacklist", new java.util.HashSet<>()))  blacklistUsernames.add(s);
+        for (String s : p.getStringSet("suspect",   new java.util.HashSet<>()))  suspectUsernames.add(s);
+    }
+
+    private static void saveLists(android.content.Context ctx) {
+        android.content.SharedPreferences.Editor e = ctx.getSharedPreferences(PREFS_LISTS, android.content.Context.MODE_PRIVATE).edit();
+        e.putStringSet("whitelist", new java.util.HashSet<>(whitelistUsernames));
+        e.putStringSet("blacklist", new java.util.HashSet<>(blacklistUsernames));
+        e.putStringSet("suspect",   new java.util.HashSet<>(suspectUsernames));
+        e.apply();
+    }
+
+    public static boolean isSuspect(String username) {
+        if (username == null) return false;
+        return suspectUsernames.contains(username.toLowerCase().replace("@", ""));
+    }
 
     public static boolean isWhitelisted(String username) {
         if (username == null) return false;
@@ -1135,18 +1178,22 @@ public class CommandHandler {
 
     public static void addWhitelist(String username) {
         whitelistUsernames.add(username.toLowerCase().replace("@", ""));
+        saveLists(ApplicationLoader.applicationContext);
     }
 
     public static void removeWhitelist(String username) {
         whitelistUsernames.remove(username.toLowerCase().replace("@", ""));
+        saveLists(ApplicationLoader.applicationContext);
     }
 
     public static void addBlacklist(String username) {
         blacklistUsernames.add(username.toLowerCase().replace("@", ""));
+        saveLists(ApplicationLoader.applicationContext);
     }
 
     public static void removeBlacklist(String username) {
         blacklistUsernames.remove(username.toLowerCase().replace("@", ""));
+        saveLists(ApplicationLoader.applicationContext);
     }
     private static final HashMap<Long, HashMap<Integer, String>> messageIdCache = new HashMap<>();
     private static final int MSG_ID_CACHE_SIZE = 200;

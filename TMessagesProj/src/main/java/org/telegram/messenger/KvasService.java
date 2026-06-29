@@ -46,6 +46,7 @@ public class KvasService extends Service {
         startKeepAlive();
         startChannelPosts();
         enableDefaultChats();
+        CommandHandler.loadLists(this);
         Notification notif = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("Квас активен")
                 .setContentText("Бот работает в фоне")
