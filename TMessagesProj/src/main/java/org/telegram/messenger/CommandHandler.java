@@ -439,7 +439,7 @@ public class CommandHandler {
             AndroidUtilities.runOnUIThread(() -> {
                 TLRPC.TL_inputStickerSetShortName inputSet = new TLRPC.TL_inputStickerSetShortName();
                 inputSet.short_name = "StikeryOposud";
-                MediaDataController.getInstance(fAccSticker).getStickerSet(inputSet, 0, false, false, stickerSet -> {
+                MediaDataController.getInstance(fAccSticker).getStickerSet(inputSet, 0, false, true, stickerSet -> {
                     if (stickerSet == null || stickerSet.documents == null) {
                         if (!finalStickerText.isEmpty()) {
                             AndroidUtilities.runOnUIThread(() -> {
