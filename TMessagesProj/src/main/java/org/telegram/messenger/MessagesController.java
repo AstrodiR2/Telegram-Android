@@ -21253,7 +21253,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         AndroidUtilities.runOnUIThread(() -> {
                             ArrayList<Integer> delIds = new ArrayList<>();
                             delIds.add(fKorsMsgId);
-                            deleteMessages(delIds, null, null, fDlgKors, true, false);
+                            deleteMessages(delIds, null, null, fDlgKors, 0, true, 0);
                             SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
                                 "@korskros", fDlgKors, fReplyKors, null, null, false, null, null, null, false, 0, 0, null, false);
                             SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
