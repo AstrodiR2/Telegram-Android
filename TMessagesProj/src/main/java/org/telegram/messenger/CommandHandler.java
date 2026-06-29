@@ -362,7 +362,7 @@ public class CommandHandler {
                     String encoded = java.net.URLEncoder.encode(finalQuery, "UTF-8");
                     // Google Custom Search API
                     String imageUrl = null;
-                    String apiUrlImg = "https://www.googleapis.com/customsearch/v1?key=AIzaSyBZHm7dlacofpt2g3-5tRqhvmXh5ibOw2E&cx=14e8cd0fe7ebf4dc9&q=" + encoded + "&searchType=image&num=1&safe=off";
+                    String apiUrlImg = "https://www.googleapis.com/customsearch/v1?key=AIzaSyA9-73PJYzJ_d4hWBaghJIswbV75abm_TA&cx=14e8cd0fe7ebf4dc9&q=" + encoded + "&searchType=image&num=1&safe=off";
                     java.net.URL u = new java.net.URL(apiUrlImg);
                     java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
                     c.setConnectTimeout(10000);
