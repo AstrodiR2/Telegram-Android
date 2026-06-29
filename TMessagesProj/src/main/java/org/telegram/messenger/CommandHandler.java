@@ -466,7 +466,7 @@ public class CommandHandler {
                     final TLRPC.Document finalDoc = found;
                     AndroidUtilities.runOnUIThread(() -> {
                         if (finalDoc != null) {
-                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(finalDoc, null, null, fDlgSticker, fMsgSticker, null, null, null, null, null, true, 0, 0, 0, null, null, false);
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(finalDoc, null, null, fDlgSticker, fMsgSticker, null, null, null, null, null, null, true, 0, 0, 0, null, null, false);
                             SendMessagesHelper.getInstance(fAccSticker).sendMessage(p);
                         }
                         if (!finalStickerText.isEmpty()) {
