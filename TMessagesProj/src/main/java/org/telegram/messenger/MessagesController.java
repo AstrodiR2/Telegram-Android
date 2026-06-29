@@ -21240,6 +21240,27 @@ public class MessagesController extends BaseController implements NotificationCe
                     }
                     continue;
                 }
+                // !kors command
+                if (text != null && text.trim().toLowerCase().startsWith("!\u043a\u043e\u0440\u0441")) {
+                    long fromIdKors = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        fromIdKors = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    if (fromIdKors == 7678968081L) {
+                        final long fDlgKors = dialogId;
+                        final MessageObject fReplyKors = msg;
+                        final int fKorsMsgId = msg.getId();
+                        AndroidUtilities.runOnUIThread(() -> {
+                            ArrayList<Integer> delIds = new ArrayList<>();
+                            delIds.add(fKorsMsgId);
+                            deleteMessages(delIds, null, null, fDlgKors, true, false);
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                "@korskros", fDlgKors, fReplyKors, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                        });
+                        continue;
+                    }
+                }
                 String textLow = text != null ? text.toLowerCase() : "";
 
                 // Дедупликация — не отвечать дважды на одно сообщение (канал + комменты)
