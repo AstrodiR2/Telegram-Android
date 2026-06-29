@@ -651,10 +651,10 @@ public class CommandHandler {
                 "├ `/ai role` — сменить роль\n" +
                 "├ `/ai user` — автоответ в чате\n" +
                 "├ `/ai user off` — выключить везде\n" +
-                "├ `/ai allow @user` — whitelist (отвечать всегда)\n" +
-                "├ `/ai unallow @user` — убрать из whitelist\n" +
-                "├ `/ai block @user` — blacklist (никогда не отвечать)\n" +
-                "├ `/ai unblock @user` — убрать из blacklist\n" +
+                "├ `/ai allow user` — whitelist (отвечать всегда)\n" +
+                "├ `/ai unallow user` — убрать из whitelist\n" +
+                "├ `/ai block user` — blacklist (никогда не отвечать)\n" +
+                "├ `/ai unblock user` — убрать из blacklist\n" +
                 "├ `/ai api` — настроить API\n" +
                 "├ `/ai vision` — настроить Vision API\n" +
                 "├ `/ai clean` — очистить историю\n" +
