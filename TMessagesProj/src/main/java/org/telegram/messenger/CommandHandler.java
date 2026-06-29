@@ -431,6 +431,7 @@ public class CommandHandler {
         if (stickerMatcher.find()) {
             String stickerEmoji = stickerMatcher.group(1).trim();
             result = stickerMatcher.replaceAll("").trim();
+            addLog("🎭 STICKER тег найден: " + stickerEmoji);
             final String finalStickerText = result;
             final String finalEmoji = stickerEmoji;
             final long fDlgSticker = dialogId;
