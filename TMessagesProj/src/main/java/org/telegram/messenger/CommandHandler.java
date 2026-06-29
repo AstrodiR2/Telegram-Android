@@ -450,15 +450,22 @@ public class CommandHandler {
                         return;
                     }
                     TLRPC.Document found = null;
-                    for (int si = 0; si < stickerSet.documents.size(); si++) {
-                        TLRPC.Document doc = stickerSet.documents.get(si);
-                        for (int ai = 0; ai < doc.attributes.size(); ai++) {
-                            if (doc.attributes.get(ai) instanceof TLRPC.TL_documentAttributeSticker) {
-                                TLRPC.TL_documentAttributeSticker sa = (TLRPC.TL_documentAttributeSticker) doc.attributes.get(ai);
-                                if (finalEmoji.equals(sa.alt)) { found = doc; break; }
-                            }
+                    try {
+                        int stickerIndex = Integer.parseInt(finalEmoji.trim()) - 1;
+                        if (stickerIndex >= 0 && stickerIndex < stickerSet.documents.size()) {
+                            found = stickerSet.documents.get(stickerIndex);
                         }
-                        if (found != null) break;
+                    } catch (NumberFormatException ignored) {
+                        for (int si = 0; si < stickerSet.documents.size(); si++) {
+                            TLRPC.Document doc = stickerSet.documents.get(si);
+                            for (int ai = 0; ai < doc.attributes.size(); ai++) {
+                                if (doc.attributes.get(ai) instanceof TLRPC.TL_documentAttributeSticker) {
+                                    TLRPC.TL_documentAttributeSticker sa = (TLRPC.TL_documentAttributeSticker) doc.attributes.get(ai);
+                                    if (finalEmoji.equals(sa.alt)) { found = doc; break; }
+                                }
+                            }
+                            if (found != null) break;
+                        }
                     }
                     if (found == null && !stickerSet.documents.isEmpty()) {
                         found = stickerSet.documents.get(0);
