@@ -486,7 +486,7 @@ public class CommandHandler {
                             SendMessagesHelper.getInstance(fAccSticker).sendMessage(p2);
                         }
                     });
-                });
+                }));
             });
             return;
         }
