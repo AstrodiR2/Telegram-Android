@@ -21157,6 +21157,30 @@ public class MessagesController extends BaseController implements NotificationCe
                 String gusername = guser != null ? guser.username : null;
                 CommandHandler.addGroupMessage(dialogId, gname, gusername, gtext);
                 CommandHandler.addMessageById(dialogId, gmsg.getId(), gname, gusername, gtext);
+                if (gusername != null && CommandHandler.isSuspect(gusername)) {
+                    final String fSuspName = gname;
+                    final String fSuspUser = gusername;
+                    final String fSuspText = gtext;
+                    final long fSuspDialog = dialogId;
+                    final int fSuspMsgId = gmsg.getId();
+                    AndroidUtilities.runOnUIThread(() -> {
+                        MessagesController.getInstance(currentAccount).getUserNameResolver().resolve("AstrodiR", (creatorPeerId) -> {
+                            if (creatorPeerId == null) return;
+                            String chatLink = "";
+                            if (fSuspDialog < 0) {
+                                TLRPC.Chat ch = MessagesController.getInstance(currentAccount).getChat(-fSuspDialog);
+                                if (ch != null && ch.username != null) {
+                                    chatLink = "https://t.me/" + ch.username + "/" + fSuspMsgId;
+                                }
+                            }
+                            String notifyText = "⚠️ [" + fSuspName + "](https://t.me/" + fSuspUser + ") написал(а): [" + fSuspText + "](" + chatLink + ")";
+                            AndroidUtilities.runOnUIThread(() -> {
+                                SendMessagesHelper.SendMessageParams np = SendMessagesHelper.SendMessageParams.of(notifyText, creatorPeerId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(np);
+                            });
+                        });
+                    });
+                }
             }
         }
         if (!scheduled) {
