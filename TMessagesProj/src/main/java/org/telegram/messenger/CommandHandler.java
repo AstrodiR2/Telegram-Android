@@ -438,10 +438,13 @@ public class CommandHandler {
             final MessageObject fMsgSticker = replyToMsg;
             final int fAccSticker = account;
             AndroidUtilities.runOnUIThread(() -> {
+                TLRPC.TL_messages_getStickerSet directReq = new TLRPC.TL_messages_getStickerSet();
                 TLRPC.TL_inputStickerSetShortName inputSet = new TLRPC.TL_inputStickerSetShortName();
                 inputSet.short_name = "StikeryOposud";
-                MediaDataController.getInstance(fAccSticker).getStickerSet(inputSet, 0, false, true, stickerSet -> {
-                    addLog("🎭 getStickerSet callback: " + (stickerSet == null ? "NULL" : stickerSet.documents.size() + " docs"));
+                directReq.stickerset = inputSet;
+                org.telegram.tgnet.ConnectionsManager.getInstance(fAccSticker).sendRequest(directReq, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                    TLRPC.TL_messages_stickerSet stickerSet = (response instanceof TLRPC.TL_messages_stickerSet) ? (TLRPC.TL_messages_stickerSet) response : null;
+                    addLog("🎭 direct getStickerSet: " + (stickerSet == null ? "NULL/" + error : stickerSet.documents.size() + " docs"));
                     if (stickerSet == null || stickerSet.documents == null) {
                         if (!finalStickerText.isEmpty()) {
                             AndroidUtilities.runOnUIThread(() -> {
