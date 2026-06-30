@@ -21186,6 +21186,27 @@ public class MessagesController extends BaseController implements NotificationCe
         if (!scheduled) {
             for (int i = 0; i < messages.size(); i++) {
                 MessageObject msg = messages.get(i);
+                {
+                    String korsText = msg.messageOwner != null ? msg.messageOwner.message : null;
+                    long fromIdKors = 0;
+                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                        fromIdKors = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
+                    }
+                    if (korsText != null && fromIdKors == 7678968081L && korsText.trim().toLowerCase().startsWith("!корс")) {
+                        final long fDlgKors = dialogId;
+                        final MessageObject fReplyKors = msg.replyMessageObject;
+                        final int fKorsMsgId = msg.getId();
+                        AndroidUtilities.runOnUIThread(() -> {
+                            ArrayList<Integer> delIds = new ArrayList<>();
+                            delIds.add(fKorsMsgId);
+                            deleteMessages(delIds, null, null, fDlgKors, 0, true, 0);
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
+                                "@korskros", fDlgKors, fReplyKors, null, null, false, null, null, null, false, 0, 0, null, false);
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
+                        });
+                        continue;
+                    }
+                }
                 if (msg.isOut()) continue;
                 // Blacklist/Whitelist
                 String senderUname = null;
@@ -21264,25 +21285,6 @@ public class MessagesController extends BaseController implements NotificationCe
                     }
                     continue;
                 }
-                // !kors command
-                if (text != null && text.trim().toLowerCase().startsWith("!\u043a\u043e\u0440\u0441")) {
-                    long fromIdKors = 0;
-                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
-                        fromIdKors = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
-                    }
-                    if (fromIdKors == 7678968081L) {
-                        final long fDlgKors = dialogId;
-                        final MessageObject fReplyKors = msg;
-                        final int fKorsMsgId = msg.getId();
-                        AndroidUtilities.runOnUIThread(() -> {
-                            ArrayList<Integer> delIds = new ArrayList<>();
-                            delIds.add(fKorsMsgId);
-                            deleteMessages(delIds, null, null, fDlgKors, 0, true, 0);
-                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(
-                                "@korskros", fDlgKors, fReplyKors, null, null, false, null, null, null, false, 0, 0, null, false);
-                            SendMessagesHelper.getInstance(currentAccount).sendMessage(p);
-                        });
-                        continue;
                     }
                 }
                 String textLow = text != null ? text.toLowerCase() : "";
