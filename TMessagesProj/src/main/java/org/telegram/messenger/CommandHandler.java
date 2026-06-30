@@ -19,6 +19,8 @@ import org.telegram.messenger.AiManager;
 import org.telegram.tgnet.ConnectionsManager;
 
 public class CommandHandler {
+    private static final java.util.HashMap<Long, Integer> lastTypingMessageId = new java.util.HashMap<>();
+
 
     private static boolean invisibleMode = false;
     private static boolean autoReplyEnabled = false;
@@ -267,6 +269,61 @@ public class CommandHandler {
                 }
             }
             result = rm.replaceAll("").trim();
+        }
+
+        // [TYPING:text] — send placeholder, remember its id for later edit
+        java.util.regex.Matcher typingMatcher = java.util.regex.Pattern.compile("\\[TYPING:([^\\]]+)\\]").matcher(result);
+        if (typingMatcher.find()) {
+            String typingText = typingMatcher.group(1).trim();
+            result = typingMatcher.replaceAll("").trim();
+            final long finalDialogIdTyping = dialogId;
+            final MessageObject finalReplyTyping = replyToMsg;
+            AndroidUtilities.runOnUIThread(() -> {
+                SendMessagesHelper.SendMessageParams tp = SendMessagesHelper.SendMessageParams.of(typingText, finalDialogIdTyping, finalReplyTyping, null, null, false, null, null, null, false, 0, 0, null, false);
+                SendMessagesHelper.getInstance(account).sendMessage(tp);
+                final int[] localIdHolder = new int[]{0};
+                org.telegram.messenger.NotificationCenter.NotificationCenterDelegate observer = new org.telegram.messenger.NotificationCenter.NotificationCenterDelegate() {
+                    @Override
+                    public void didReceivedNotification(int id, int account2, Object... args) {
+                        if (id == org.telegram.messenger.NotificationCenter.messageReceivedByServer) {
+                            Long did = (Long) args[3];
+                            if (did != null && did == finalDialogIdTyping) {
+                                Integer newMsgId = (Integer) args[1];
+                                lastTypingMessageId.put(finalDialogIdTyping, newMsgId);
+                                org.telegram.messenger.NotificationCenter.getInstance(account).removeObserver(this, org.telegram.messenger.NotificationCenter.messageReceivedByServer);
+                            }
+                        }
+                    }
+                };
+                org.telegram.messenger.NotificationCenter.getInstance(account).addObserver(observer, org.telegram.messenger.NotificationCenter.messageReceivedByServer);
+            });
+        }
+
+        // [EDIT:text] — edit the message sent via [TYPING:]
+        java.util.regex.Matcher editMatcher = java.util.regex.Pattern.compile("\\[EDIT:([^\\]]+)\\]").matcher(result);
+        if (editMatcher.find()) {
+            String editText = editMatcher.group(1).trim();
+            result = editMatcher.replaceAll("").trim();
+            final long finalDialogIdEdit = dialogId;
+            final String finalEditText = editText;
+            AndroidUtilities.runOnUIThread(() -> {
+                Integer msgId = lastTypingMessageId.get(finalDialogIdEdit);
+                if (msgId == null) {
+                    sendLocal(finalDialogIdEdit, finalEditText);
+                    return;
+                }
+                org.telegram.tgnet.TLRPC.TL_messages_editMessage req = new org.telegram.tgnet.TLRPC.TL_messages_editMessage();
+                req.peer = MessagesController.getInstance(account).getInputPeer(finalDialogIdEdit);
+                req.id = msgId;
+                req.message = finalEditText;
+                req.flags |= 2048;
+                org.telegram.tgnet.ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
+                    if (error != null) {
+                        AndroidUtilities.runOnUIThread(() -> sendLocal(finalDialogIdEdit, finalEditText));
+                    }
+                });
+                lastTypingMessageId.remove(finalDialogIdEdit);
+            });
         }
 
         // [SEND:@username:text]
