@@ -333,6 +333,62 @@ public class CommandHandler {
             });
         }
 
+        // [FORWARD:@username:message_id]
+        java.util.regex.Matcher fwdMatcher = java.util.regex.Pattern.compile("\\[FORWARD:(@?[^:\\]]+):(\\d+)\\]").matcher(result);
+        if (fwdMatcher.find()) {
+            String fwdUsername = fwdMatcher.group(1).trim().replaceAll("^@", "");
+            int fwdMsgId = Integer.parseInt(fwdMatcher.group(2).trim());
+            result = fwdMatcher.replaceAll("").trim();
+            final int finalFwdMsgId = fwdMsgId;
+            final long finalDialogIdFwd = dialogId;
+            AndroidUtilities.runOnUIThread(() -> {
+                MessagesController.getInstance(account).getUserNameResolver().resolve(fwdUsername, (peerId) -> {
+                    if (peerId == null) {
+                        sendLocal(finalDialogIdFwd, "❌ Не нашёл пользователя @" + fwdUsername);
+                        return;
+                    }
+                    AndroidUtilities.runOnUIThread(() -> {
+                        org.telegram.tgnet.TLRPC.Chat chat = org.telegram.messenger.DialogObject.isChatDialog(finalDialogIdFwd)
+                                ? MessagesController.getInstance(account).getChat(-finalDialogIdFwd) : null;
+                        org.telegram.tgnet.TLObject req;
+                        java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+                        ids.add(finalFwdMsgId);
+                        if (org.telegram.messenger.ChatObject.isChannel(chat)) {
+                            org.telegram.tgnet.TLRPC.TL_channels_getMessages r = new org.telegram.tgnet.TLRPC.TL_channels_getMessages();
+                            r.channel = MessagesController.getInstance(account).getInputChannel(chat);
+                            r.id = ids;
+                            req = r;
+                        } else {
+                            org.telegram.tgnet.TLRPC.TL_messages_getMessages r = new org.telegram.tgnet.TLRPC.TL_messages_getMessages();
+                            r.id = ids;
+                            req = r;
+                        }
+                        org.telegram.tgnet.ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                if (error != null || response == null) {
+                                    addLog("❌ FORWARD getMessages ошибка: " + (error != null ? error.text : "null response"));
+                                    sendLocal(finalDialogIdFwd, "❌ Не удалось найти сообщение #" + finalFwdMsgId);
+                                    return;
+                                }
+                                org.telegram.tgnet.TLRPC.messages_Messages res = (org.telegram.tgnet.TLRPC.messages_Messages) response;
+                                if (res.messages.isEmpty()) {
+                                    sendLocal(finalDialogIdFwd, "❌ Сообщение #" + finalFwdMsgId + " не найдено");
+                                    return;
+                                }
+                                org.telegram.tgnet.TLRPC.Message tlMsg = res.messages.get(0);
+                                MessageObject msgObj = new MessageObject(account, tlMsg, false, true);
+                                java.util.ArrayList<MessageObject> toForward = new java.util.ArrayList<>();
+                                toForward.add(msgObj);
+                                SendMessagesHelper.getInstance(account).sendMessage(toForward, peerId, false, false, true, 0, 0L);
+                                addLog("✅ FORWARD отправлен: msgId=" + finalFwdMsgId + " -> @" + fwdUsername);
+                                sendLocal(finalDialogIdFwd, "✅ Переслал сообщение #" + finalFwdMsgId + " пользователю @" + fwdUsername);
+                            });
+                        });
+                    });
+                });
+            });
+        }
+
         // [SEND:@username:text]
         java.util.regex.Matcher sendMatcher = java.util.regex.Pattern.compile("\\[SEND:(@?[^:\\]]+):([^\\]]+)\\]").matcher(result);
         if (sendMatcher.find()) {
