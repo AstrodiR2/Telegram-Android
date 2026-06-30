@@ -275,6 +275,7 @@ public class CommandHandler {
         java.util.regex.Matcher typingMatcher = java.util.regex.Pattern.compile("\\[TYPING:([^\\]]+)\\]").matcher(result);
         if (typingMatcher.find()) {
             String typingText = typingMatcher.group(1).trim();
+            addLog("\u23F3 TYPING тег найден: " + typingText);
             result = typingMatcher.replaceAll("").trim();
             final long finalDialogIdTyping = dialogId;
             final MessageObject finalReplyTyping = replyToMsg;
@@ -290,6 +291,7 @@ public class CommandHandler {
                             if (did != null && did == finalDialogIdTyping) {
                                 Integer newMsgId = (Integer) args[1];
                                 lastTypingMessageId.put(finalDialogIdTyping, newMsgId);
+                                addLog("\u23F3 TYPING msgId сохранён: " + newMsgId + " для диалога " + finalDialogIdTyping);
                                 org.telegram.messenger.NotificationCenter.getInstance(account).removeObserver(this, org.telegram.messenger.NotificationCenter.messageReceivedByServer);
                             }
                         }
@@ -303,12 +305,14 @@ public class CommandHandler {
         java.util.regex.Matcher editMatcher = java.util.regex.Pattern.compile("\\[EDIT:([^\\]]+)\\]").matcher(result);
         if (editMatcher.find()) {
             String editText = editMatcher.group(1).trim();
+            addLog("\u270F\uFE0F EDIT тег найден: " + editText);
             result = editMatcher.replaceAll("").trim();
             final long finalDialogIdEdit = dialogId;
             final String finalEditText = editText;
             AndroidUtilities.runOnUIThread(() -> {
                 Integer msgId = lastTypingMessageId.get(finalDialogIdEdit);
                 if (msgId == null) {
+                    addLog("\u26A0\uFE0F EDIT: msgId не найден, шлю как новое сообщение");
                     sendLocal(finalDialogIdEdit, finalEditText);
                     return;
                 }
@@ -319,7 +323,10 @@ public class CommandHandler {
                 req.flags |= 2048;
                 org.telegram.tgnet.ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
                     if (error != null) {
+                        addLog("\u274C EDIT ошибка: " + error.text);
                         AndroidUtilities.runOnUIThread(() -> sendLocal(finalDialogIdEdit, finalEditText));
+                    } else {
+                        addLog("\u2705 EDIT успешно применён, msgId=" + msgId);
                     }
                 });
                 lastTypingMessageId.remove(finalDialogIdEdit);
