@@ -317,10 +317,11 @@ public class CommandHandler {
             final long finalDialogIdEdit = dialogId;
             final String finalEditText = editText;
             AndroidUtilities.runOnUIThread(() -> {
-                Integer msgId = getPendingEditMessageId(finalDialogIdEdit);
-                if (msgId == null) {
-                    msgId = lastTypingMessageId.get(finalDialogIdEdit);
+                Integer msgIdTmp = getPendingEditMessageId(finalDialogIdEdit);
+                if (msgIdTmp == null) {
+                    msgIdTmp = lastTypingMessageId.get(finalDialogIdEdit);
                 }
+                final Integer msgId = msgIdTmp;
                 if (msgId == null) {
                     addLog("\u26A0\uFE0F EDIT: msgId не найден, шлю как новое сообщение");
                     sendLocal(finalDialogIdEdit, finalEditText);
