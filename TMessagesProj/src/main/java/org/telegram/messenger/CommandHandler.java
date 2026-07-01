@@ -558,6 +558,58 @@ public class CommandHandler {
             return;
         }
 
+        // [FILE:filename.ext:content]
+        java.util.regex.Matcher fileMatcher = java.util.regex.Pattern.compile("\[FILE:([^:]+):(.+?)\]$", java.util.regex.Pattern.DOTALL).matcher(result);
+        if (fileMatcher.find()) {
+            String fileName = fileMatcher.group(1).trim();
+            String fileContent = fileMatcher.group(2);
+            result = result.substring(0, fileMatcher.start()).trim();
+            addLog("📄 FILE тег найден: " + fileName);
+            final String finalFileCaption = result;
+            final long fDlgFile = dialogId;
+            final MessageObject fMsgFile = replyToMsg;
+            final int fAccFile = account;
+            final String finalFileName = fileName;
+            final String finalFileContent = fileContent;
+            new Thread(() -> {
+                try {
+                    java.io.File outFile = new java.io.File(ApplicationLoader.applicationContext.getCacheDir(), finalFileName);
+                    java.io.FileWriter fw = new java.io.FileWriter(outFile);
+                    fw.write(finalFileContent);
+                    fw.close();
+                    AndroidUtilities.runOnUIThread(() -> {
+                        try {
+                            org.telegram.tgnet.TLRPC.TL_document doc = new org.telegram.tgnet.TLRPC.TL_document();
+                            String ext = finalFileName.contains(".") ? finalFileName.substring(finalFileName.lastIndexOf(".") + 1) : "";
+                            String mime;
+                            switch (ext.toLowerCase()) {
+                                case "py": mime = "text/x-python"; break;
+                                case "html": mime = "text/html"; break;
+                                case "md": mime = "text/markdown"; break;
+                                case "js": mime = "text/javascript"; break;
+                                case "json": mime = "application/json"; break;
+                                case "java": mime = "text/x-java-source"; break;
+                                case "xml": mime = "text/xml"; break;
+                                case "css": mime = "text/css"; break;
+                                default: mime = "text/plain"; break;
+                            }
+                            doc.mime_type = mime;
+                            org.telegram.tgnet.TLRPC.TL_documentAttributeFilename attr = new org.telegram.tgnet.TLRPC.TL_documentAttributeFilename();
+                            attr.file_name = finalFileName;
+                            doc.attributes.add(attr);
+                            SendMessagesHelper.SendMessageParams p = SendMessagesHelper.SendMessageParams.of(doc, null, outFile.getAbsolutePath(), fDlgFile, fMsgFile, null, finalFileCaption.isEmpty() ? null : finalFileCaption, null, null, null, true, 0, 0, 0, null, null, false);
+                            SendMessagesHelper.getInstance(fAccFile).sendMessage(p);
+                            addLog("✅ FILE отправлен: " + finalFileName);
+                        } catch (Exception e) {
+                            addLog("❌ FILE отправка: " + e.getMessage());
+                        }
+                    });
+                } catch (Exception e) {
+                    addLog("❌ FILE создание: " + e.getMessage());
+                }
+            }).start();
+        }
+
         // [STICKER:emoji]
         java.util.regex.Matcher stickerMatcher = java.util.regex.Pattern.compile("\\[STICKER:([^\\]]+)\\]").matcher(result);
         if (stickerMatcher.find()) {

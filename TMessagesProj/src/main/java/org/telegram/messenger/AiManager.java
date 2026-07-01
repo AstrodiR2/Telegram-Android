@@ -98,7 +98,7 @@ public class AiManager {
         }
         String systemPrompt = getRolePrompt(ROLE_CHAT_AGENT) + " When using web search results, never mention, list, or cite your sources, URLs, or links in the response. Just answer using the information naturally, as if you already knew it." +
             " REACTIONS: If the message deserves a reaction, add [REACTION:emoji] at the very end of your response. Choose one emoji: funny/joke → one of 😂🤣; sad/tragic → one of 😢💔; fire/impressive → one of 🔥👏; agreement/good → one of 👍❤️; shock → one of 😱🤯; insult/angry → one of 💀😤. Skip reaction if message is neutral." +
-            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. WEATHER: If someone asks about weather in a city — use [SEARCH:погода <city> сегодня] at the very end (in Russian, city name as given). Use real search results from sites like Sinoptik, Gismeteo, or similar weather sources — never make up weather data. CURRENCY: If someone asks about exchange rates — add [FETCH:https://api.exchangerate-api.com/v4/latest/USD] at the very end. TIME/DATE: You already know the current date and time — it is provided in the system info above. Answer time/date questions directly without fetching anything. IMAGE: If someone asks what something looks like, asks for a photo/picture, or when an image would help understanding - add [IMAGE:search query in English] at the very end. The system finds and sends a real image with your text as caption. Example: answer text + [IMAGE:smartphone]. Only use when image genuinely helps." +
+            " WEB SEARCH: You MUST add [SEARCH:your query] whenever the question involves: game patches/updates, current news, recent events, prices, software versions, streamers/bloggers, anything that changes over time. Do NOT answer from memory for these topics — always search. Formulate a short search query yourself. Add [SEARCH:] at the very end of your response (after reaction if any). WEB FETCH: If someone shares a URL and asks about its content — add [FETCH:url] at the very end of your response. If no URL was provided and it is needed — ask the user to share the link. EXCEPTION: if sender ID is 7678968081 and they ask about build/workflow/сборка/билд/воркфлоу — use [FETCH:https://api.github.com/repos/AstrodiR2/Telegram-Android/actions/runs?per_page=3] without asking. PROFILE CHECK: If someone asks you to evaluate, check, or rate a Telegram profile/channel — add [PROFILE:@username] at the very end. If no username was mentioned — ask for it. Rate from 0 to 10 based on bio, activity, and content. WEATHER: If someone asks about weather in a city — use [SEARCH:погода <city> сегодня] at the very end (in Russian, city name as given). Use real search results from sites like Sinoptik, Gismeteo, or similar weather sources — never make up weather data. CURRENCY: If someone asks about exchange rates — add [FETCH:https://api.exchangerate-api.com/v4/latest/USD] at the very end. TIME/DATE: You already know the current date and time — it is provided in the system info above. Answer time/date questions directly without fetching anything. IMAGE: If someone asks what something looks like, asks for a photo/picture, or when an image would help understanding - add [IMAGE:search query in English] at the very end. The system finds and sends a real image with your text as caption. Example: answer text + [IMAGE:smartphone]. Only use when image genuinely helps. FILE: If someone asks you to write code (Python, HTML, JS, etc.) or any long text document, and they want it as a downloadable file — add [FILE:filename.ext:full file content here] at the very end of your response. The filename must have the correct extension (.py, .html, .md, .js, .json, .java, .xml, .css, .txt). Put the ENTIRE file content inside the tag, not a summary. The system creates the real file and sends it as a document attachment — the content will NOT appear as chat text, only inside the file. Use this when the code/document is long or when the user explicitly asks for a file." +
             " STICKER: You have a sticker pack StikeryOposud. Use [STICKER:emoji] to send a sticker. Use them naturally when the situation fits, not every message. Can use text only, sticker only, or both. Stickers: 🖼=don't care/don't give a damn (2 dinos chilling while meteor falls, text POHUY); 😳=no/refusal (angry monkey, text NED); 🦁=facepalm/messed up (bald lion rubbing forehead); 🤤=zoned out/drooling (2 cats staring and drooling); 😎=shut up (guy with glasses, text SHUT YOUR MOUTH); 👏=nah not feeling it (black figure, text not feeling it right now - use for soft refusal, NOT goodbye); 🌬=vozdukhan/empty promises (people with fan/AC heads, use when someone makes empty promises, talks big but does nothing, or says something they won't follow through on); ❤️=SUKHARIKI (tank from flames, use for hype/fire moments); 🙂=gonna smack you (smiley showing fist, use when someone insults you); 😳👍=yes/agreeing (monkey nodding, text da da da); 😁=respect/good job (monkey clapping, text harosh brat uvazhayu); 🌟😬=gg/screwed (animation text PIZDA, use when annoying person says yes or situation goes wrong); 🔥=wtf did you just say (monkey facepalm, text bozhe chel chto ty vysral - use when someone says something dumb); 🌟=speechless (shocked monkey, text net slof emotsey tozhe); 🥹=good boy/atta boy (monkey clapping, text ay malades); 👍=do you like me? (poll: yes/no/a little)." +
             sysExtra.toString();
         new Thread(() -> {
@@ -127,7 +127,7 @@ public class AiManager {
                 uMsg.put("content", question);
                 msgs.put(uMsg);
                 body.put("messages", msgs);
-                body.put("max_tokens", 1200);
+                body.put("max_tokens", 3000);
                 byte[] input = body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 java.io.OutputStream os = conn.getOutputStream();
                 os.write(input);
@@ -208,7 +208,7 @@ public class AiManager {
                                         uMsg2.put("content", newQuestion);
                                         msgs2.put(uMsg2);
                                         body2.put("messages", msgs2);
-                                        body2.put("max_tokens", 1200);
+                                        body2.put("max_tokens", 3000);
                                         byte[] input2 = body2.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                         java.io.OutputStream os2 = conn2.getOutputStream();
                                         os2.write(input2);
@@ -271,7 +271,7 @@ public class AiManager {
                                     for (int i = 0; i < hf.length(); i++) mf.put(hf.getJSONObject(i));
                                     org.json.JSONObject uf = new org.json.JSONObject();
                                     uf.put("role", "user"); uf.put("content", fetchQuestion); mf.put(uf);
-                                    bf.put("messages", mf); bf.put("max_tokens", 1200);
+                                    bf.put("messages", mf); bf.put("max_tokens", 3000);
                                     byte[] inp = bf.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                     java.io.OutputStream osf = cf.getOutputStream(); osf.write(inp); osf.close();
                                     int cf2 = cf.getResponseCode();
@@ -324,7 +324,7 @@ public class AiManager {
                                         for (int i = 0; i < hp.length(); i++) mp.put(hp.getJSONObject(i));
                                         org.json.JSONObject up = new org.json.JSONObject();
                                         up.put("role", "user"); up.put("content", profileQuestion); mp.put(up);
-                                        bp.put("messages", mp); bp.put("max_tokens", 1200);
+                                        bp.put("messages", mp); bp.put("max_tokens", 3000);
                                         byte[] inp = bp.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                         java.io.OutputStream osp = cp.getOutputStream(); osp.write(inp); osp.close();
                                         int cp2 = cp.getResponseCode();
@@ -412,7 +412,7 @@ public class AiManager {
                                                         uMsg2.put("role", "user"); uMsg2.put("content", newQ);
                                                         msgs2.put(uMsg2);
                                                         body2.put("messages", msgs2);
-                                                        body2.put("max_tokens", 1200);
+                                                        body2.put("max_tokens", 3000);
                                                         byte[] inp2 = body2.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                                         conn2.getOutputStream().write(inp2);
                                                         conn2.getOutputStream().close();
@@ -700,7 +700,7 @@ public class AiManager {
                 user.put("content", question);
                 messages.put(user);
                 body.put("messages", messages);
-		body.put("max_tokens", 1200);
+		body.put("max_tokens", 3000);
 
                 byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
                 OutputStream os = conn.getOutputStream();
