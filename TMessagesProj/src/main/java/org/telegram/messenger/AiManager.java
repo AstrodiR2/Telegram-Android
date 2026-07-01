@@ -147,6 +147,32 @@ public class AiManager {
                     org.json.JSONObject um2 = new org.json.JSONObject(); um2.put("role", "user"); um2.put("content", question); updHist.put(um2);
                     org.json.JSONObject am2 = new org.json.JSONObject(); am2.put("role", "assistant"); am2.put("content", result); updHist.put(am2);
                     saveHistory(context, dialogId, updHist);
+                    // Парсим [TYPING:текст] — отправляем заглушку СРАЗУ, до [SEARCH:]
+                    java.util.regex.Matcher typingMatcherPre = java.util.regex.Pattern.compile("\\[TYPING:([^\\]]+)\\]").matcher(result);
+                    if (typingMatcherPre.find()) {
+                        String typingTextPre = typingMatcherPre.group(1).trim();
+                        org.telegram.messenger.CommandHandler.addLog("⏳ TYPING (pre-search) тег найден: " + typingTextPre);
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            org.telegram.messenger.SendMessagesHelper.SendMessageParams tp = org.telegram.messenger.SendMessagesHelper.SendMessageParams.of(typingTextPre, dialogId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+                            org.telegram.messenger.SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(tp);
+                            org.telegram.tgnet.TLRPC.TL_updateNewMessage placeholder = null;
+                            org.telegram.messenger.NotificationCenter.NotificationCenterDelegate observer = new org.telegram.messenger.NotificationCenter.NotificationCenterDelegate() {
+                                @Override
+                                public void didReceivedNotification(int id, int account2, Object... args) {
+                                    if (id == org.telegram.messenger.NotificationCenter.messageReceivedByServer) {
+                                        Long did = (Long) args[3];
+                                        if (did != null && did == dialogId) {
+                                            Integer newMsgId = (Integer) args[1];
+                                            org.telegram.messenger.CommandHandler.setPendingEditMessageId(dialogId, newMsgId);
+                                            org.telegram.messenger.NotificationCenter.getInstance(UserConfig.selectedAccount).removeObserver(this, org.telegram.messenger.NotificationCenter.messageReceivedByServer);
+                                        }
+                                    }
+                                }
+                            };
+                            org.telegram.messenger.NotificationCenter.getInstance(UserConfig.selectedAccount).addObserver(observer, org.telegram.messenger.NotificationCenter.messageReceivedByServer);
+                        });
+                        result = typingMatcherPre.replaceAll("").trim();
+                    }
                     // Парсим [SEARCH:запрос]
                     java.util.regex.Matcher searchMatcher = java.util.regex.Pattern.compile("\\[SEARCH:([^\\]]+)\\]").matcher(result);
                     if (searchMatcher.find() && org.telegram.messenger.CommandHandler.canWebSearch(dialogId)) {

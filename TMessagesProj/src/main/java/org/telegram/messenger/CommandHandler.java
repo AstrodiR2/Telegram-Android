@@ -20,6 +20,10 @@ import org.telegram.tgnet.ConnectionsManager;
 
 public class CommandHandler {
     private static final java.util.HashMap<Long, Integer> lastTypingMessageId = new java.util.HashMap<>();
+    private static final java.util.HashMap<Long, Integer> pendingEditMessageId = new java.util.HashMap<>();
+    public static void setPendingEditMessageId(long dialogId, int msgId) { pendingEditMessageId.put(dialogId, msgId); }
+    public static Integer getPendingEditMessageId(long dialogId) { return pendingEditMessageId.get(dialogId); }
+    public static void clearPendingEditMessageId(long dialogId) { pendingEditMessageId.remove(dialogId); }
 
 
     private static boolean invisibleMode = false;
@@ -313,12 +317,16 @@ public class CommandHandler {
             final long finalDialogIdEdit = dialogId;
             final String finalEditText = editText;
             AndroidUtilities.runOnUIThread(() -> {
-                Integer msgId = lastTypingMessageId.get(finalDialogIdEdit);
+                Integer msgId = getPendingEditMessageId(finalDialogIdEdit);
+                if (msgId == null) {
+                    msgId = lastTypingMessageId.get(finalDialogIdEdit);
+                }
                 if (msgId == null) {
                     addLog("\u26A0\uFE0F EDIT: msgId не найден, шлю как новое сообщение");
                     sendLocal(finalDialogIdEdit, finalEditText);
                     return;
                 }
+                clearPendingEditMessageId(finalDialogIdEdit);
                 org.telegram.tgnet.TLRPC.TL_messages_editMessage req = new org.telegram.tgnet.TLRPC.TL_messages_editMessage();
                 req.peer = MessagesController.getInstance(account).getInputPeer(finalDialogIdEdit);
                 req.id = msgId;
