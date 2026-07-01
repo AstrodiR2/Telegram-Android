@@ -21285,8 +21285,6 @@ public class MessagesController extends BaseController implements NotificationCe
                     }
                     continue;
                 }
-                    }
-                }
                 String textLow = text != null ? text.toLowerCase() : "";
 
                 // Дедупликация — не отвечать дважды на одно сообщение (канал + комменты)
@@ -21438,6 +21436,55 @@ public class MessagesController extends BaseController implements NotificationCe
                     triggered = true;
                     continue;
                 }
+
+                // STT: перехват голосовых
+            if (msg.isVoice() && !msg.isOut() && CommandHandler.isAiUserEnabled(dialogId)
+                    && msg.messageOwner != null && msg.messageOwner.reply_to instanceof TLRPC.TL_messageReplyHeader
+                    && CommandHandler.isMyMessageId(dialogId, ((TLRPC.TL_messageReplyHeader) msg.messageOwner.reply_to).reply_to_msg_id)
+                    && AiManager.isSttConfigured(ApplicationLoader.applicationContext)) {
+                TLRPC.Document voiceDoc = msg.getDocument();
+                if (voiceDoc != null) {
+                    final long fDlgStt = dialogId;
+                    final MessageObject fMsgStt = msg;
+                    final int fAccountStt = currentAccount;
+                    java.io.File voiceFile = FileLoader.getInstance(currentAccount).getPathToAttach(voiceDoc, true);
+                    Runnable processVoice = () -> {
+                        AiManager.transcribeAudio(ApplicationLoader.applicationContext, voiceFile.getAbsolutePath(), new AiManager.SttCallback() {
+                            @Override
+                            public void onResult(String text) {
+                                CommandHandler.addLog("✅ STT распознал: " + text);
+                                AiManager.ask(ApplicationLoader.applicationContext, fDlgStt, text, new AiManager.AiCallback() {
+                                    @Override
+                                    public void onResult(String result) {
+                                        CommandHandler.sendAiResult(fDlgStt, result, fMsgStt, fAccountStt);
+                                    }
+                                    @Override
+                                    public void onError(String error) {
+                                        CommandHandler.addLog("❌ STT->AI ошибка: " + error);
+                                    }
+                                });
+                            }
+                            @Override
+                            public void onError(String error) {
+                                CommandHandler.addLog("❌ STT: " + error);
+                            }
+                        });
+                    };
+                    if (voiceFile != null && voiceFile.exists()) {
+                        processVoice.run();
+                    } else {
+                        FileLoader.getInstance(currentAccount).loadFile(voiceDoc, null, FileLoader.PRIORITY_HIGH, 0);
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            if (voiceFile != null && voiceFile.exists()) {
+                                processVoice.run();
+                            } else {
+                                CommandHandler.addLog("❌ STT: голосовое не скачалось за 30 сек");
+                            }
+                        }, 30000);
+                    }
+                }
+                continue;
+            }
 
                 // Vision: перехват фото
                 if (CommandHandler.isVisionEnabled(ApplicationLoader.applicationContext) && !msg.isOut() &&

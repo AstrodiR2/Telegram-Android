@@ -87,6 +87,9 @@ public class CommandHandler {
     public static final int AI_WIZARD_VISION_URL = 4;
     public static final int AI_WIZARD_VISION_MODEL = 5;
     public static final int AI_WIZARD_VISION_TOKEN = 6;
+    public static final int AI_WIZARD_STT_URL = 7;
+    public static final int AI_WIZARD_STT_MODEL = 8;
+    public static final int AI_WIZARD_STT_TOKEN = 9;
 
     private static int aiWizardStep = AI_WIZARD_NONE;
     private static String aiWizardUrl = "";
@@ -926,6 +929,14 @@ public class CommandHandler {
             return;
         }
 
+        if (argTrimmed.equals("stt")) {
+            aiWizardStep = AI_WIZARD_STT_URL;
+            aiWizardDialogId = dialogId;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "STT: отправьте URL провайдера:\n(Например https://api.groq.com/openai/v1)", Toast.LENGTH_LONG).show());
+            return;
+        }
+
 
         if (argTrimmed.equals("clean mem")) {
             AiManager.clearLongMemory(ctx);
@@ -1084,6 +1095,31 @@ public class CommandHandler {
             aiWizardDialogId = 0;
             AndroidUtilities.runOnUIThread(() ->
                 Toast.makeText(ctx, "✅ Vision настроен!", Toast.LENGTH_SHORT).show());
+            return true;
+        }
+
+        if (aiWizardStep == AI_WIZARD_STT_URL) {
+            aiWizardUrl = text.trim();
+            aiWizardStep = AI_WIZARD_STT_MODEL;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "STT: модель (например whisper-large-v3):", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_STT_MODEL) {
+            aiWizardModel = text.trim();
+            aiWizardStep = AI_WIZARD_STT_TOKEN;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "STT: API ключ:", Toast.LENGTH_LONG).show());
+            return true;
+        }
+        if (aiWizardStep == AI_WIZARD_STT_TOKEN) {
+            AiManager.saveSttSettings(ctx, aiWizardUrl, aiWizardModel, text.trim());
+            aiWizardStep = AI_WIZARD_NONE;
+            aiWizardUrl = "";
+            aiWizardModel = "";
+            aiWizardDialogId = 0;
+            AndroidUtilities.runOnUIThread(() ->
+                Toast.makeText(ctx, "✅ STT настроен!", Toast.LENGTH_SHORT).show());
             return true;
         }
         if (text.startsWith("/")) return false;

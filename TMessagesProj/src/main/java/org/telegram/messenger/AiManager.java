@@ -26,6 +26,9 @@ public class AiManager {
     private static final String KEY_VISION_URL = "vision_url";
     private static final String KEY_VISION_MODEL = "vision_model";
     private static final String KEY_VISION_TOKEN = "vision_token";
+    private static final String KEY_STT_URL = "ai_stt_url";
+    private static final String KEY_STT_MODEL = "ai_stt_model";
+    private static final String KEY_STT_TOKEN = "ai_stt_token";
     private static final int MAX_HISTORY_MESSAGES = 10;
 
     public static final int ROLE_NEX = 0;
@@ -491,6 +494,31 @@ public class AiManager {
         String u = getVisionUrl(context);
         String m = getVisionModel(context);
         String t = getVisionToken(context);
+        return u != null && !u.isEmpty() && m != null && !m.isEmpty() && t != null && !t.isEmpty();
+    }
+
+    public static void saveSttSettings(Context context, String url, String model, String token) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putString(KEY_STT_URL, url).putString(KEY_STT_MODEL, model)
+            .putString(KEY_STT_TOKEN, token).apply();
+    }
+
+    public static String getSttUrl(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_STT_URL, "");
+    }
+
+    public static String getSttModel(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_STT_MODEL, "");
+    }
+
+    public static String getSttToken(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_STT_TOKEN, "");
+    }
+
+    public static boolean isSttConfigured(Context context) {
+        String u = getSttUrl(context);
+        String m = getSttModel(context);
+        String t = getSttToken(context);
         return u != null && !u.isEmpty() && m != null && !m.isEmpty() && t != null && !t.isEmpty();
     }
 
@@ -993,6 +1021,89 @@ public class AiManager {
         void onError(String error);
     }
 
+
+    public interface SttCallback {
+        void onResult(String text);
+        void onError(String error);
+    }
+
+    public static void transcribeAudio(Context context, String audioFilePath, SttCallback callback) {
+        String sttUrl = getSttUrl(context);
+        String sttModel = getSttModel(context);
+        String sttToken = getSttToken(context);
+        if (sttUrl.isEmpty() || sttModel.isEmpty() || sttToken.isEmpty()) {
+            callback.onError("STT не настроен. Используй /ai stt");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                java.io.File audioFile = new java.io.File(audioFilePath);
+                if (!audioFile.exists()) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("Файл не найден: " + audioFilePath));
+                    return;
+                }
+                String boundary = "----KvasSttBoundary" + System.currentTimeMillis();
+                String endpoint = sttUrl.endsWith("/") ? sttUrl + "audio/transcriptions" : sttUrl + "/audio/transcriptions";
+                URL url = new URL(endpoint);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Authorization", "Bearer " + sttToken);
+                conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(60000);
+
+                OutputStream os = conn.getOutputStream();
+                java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(os, StandardCharsets.UTF_8), true);
+
+                writer.append("--").append(boundary).append("\r\n");
+                writer.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n");
+                writer.append(sttModel).append("\r\n");
+                writer.flush();
+
+                writer.append("--").append(boundary).append("\r\n");
+                writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.ogg\"\r\n");
+                writer.append("Content-Type: audio/ogg\r\n\r\n");
+                writer.flush();
+
+                byte[] fileBytes = java.nio.file.Files.readAllBytes(audioFile.toPath());
+                os.write(fileBytes);
+                os.flush();
+
+                writer.append("\r\n--").append(boundary).append("--\r\n");
+                writer.flush();
+                writer.close();
+                os.close();
+
+                int code = conn.getResponseCode();
+                BufferedReader br;
+                if (code == 200) {
+                    br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                } else {
+                    br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+                }
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                br.close();
+                conn.disconnect();
+
+                if (code != 200) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("STT HTTP " + code + ": " + sb.toString()));
+                    return;
+                }
+                JSONObject json = new JSONObject(sb.toString());
+                String text = json.optString("text", "").trim();
+                if (text.isEmpty()) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError("Пустой результат распознавания"));
+                    return;
+                }
+                new Handler(Looper.getMainLooper()).post(() -> callback.onResult(text));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> callback.onError("STT ошибка: " + e.getMessage()));
+            }
+        }).start();
+    }
 
     public interface VisionCallback {
         void onResult(String result);
