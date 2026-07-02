@@ -559,7 +559,7 @@ public class CommandHandler {
         }
 
         // [FILE:filename.ext:content]
-        java.util.regex.Matcher fileMatcher = java.util.regex.Pattern.compile("\[FILE:([^:]+):(.+?)\]$", java.util.regex.Pattern.DOTALL).matcher(result);
+        java.util.regex.Matcher fileMatcher = java.util.regex.Pattern.compile("\\[FILE:([^:]+):(.+?)\\]$", java.util.regex.Pattern.DOTALL).matcher(result);
         if (fileMatcher.find()) {
             String fileName = fileMatcher.group(1).trim();
             String fileContent = fileMatcher.group(2);
