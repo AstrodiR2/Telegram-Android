@@ -21677,11 +21677,41 @@ public class MessagesController extends BaseController implements NotificationCe
                         android.widget.Toast.makeText(ApplicationLoader.applicationContext, "❌ Для /ai user выбери роль 0 (Квас) или 4 (Квас-агент) через /ai role", android.widget.Toast.LENGTH_SHORT).show());
                     break;
                 }
+                // Чтение текстового файла, если прикреплён к сообщению
+                String fileTextContent = null;
+                if (msg.messageOwner != null && msg.messageOwner.media instanceof TLRPC.TL_messageMediaDocument) {
+                    TLRPC.Document triggerDoc = ((TLRPC.TL_messageMediaDocument) msg.messageOwner.media).document;
+                    if (triggerDoc != null) {
+                        String docFileName = null;
+                        for (int da = 0; da < triggerDoc.attributes.size(); da++) {
+                            if (triggerDoc.attributes.get(da) instanceof TLRPC.TL_documentAttributeFilename) {
+                                docFileName = ((TLRPC.TL_documentAttributeFilename) triggerDoc.attributes.get(da)).file_name;
+                                break;
+                            }
+                        }
+                        java.util.Set<String> textExts = new java.util.HashSet<>(java.util.Arrays.asList("py", "txt", "md", "java", "js", "json", "xml", "css", "html", "kt", "c", "cpp", "h", "sh", "yml", "yaml"));
+                        String docExt = docFileName != null && docFileName.contains(".") ? docFileName.substring(docFileName.lastIndexOf(".") + 1).toLowerCase() : "";
+                        if (textExts.contains(docExt)) {
+                            java.io.File docFile = FileLoader.getInstance(currentAccount).getPathToAttach(triggerDoc, true);
+                            if (docFile != null && docFile.exists()) {
+                                try {
+                                    byte[] fbytes = java.nio.file.Files.readAllBytes(docFile.toPath());
+                                    String fcontent = new String(fbytes, java.nio.charset.StandardCharsets.UTF_8);
+                                    if (fcontent.length() > 8000) fcontent = fcontent.substring(0, 8000) + "\n...[обрезано]";
+                                    fileTextContent = "[Файл " + docFileName + ":]\n" + fcontent;
+                                    CommandHandler.addLog("📄 Файл прочитан: " + docFileName);
+                                } catch (Exception e) {
+                                    CommandHandler.addLog("❌ Чтение файла: " + e.getMessage());
+                                }
+                            }
+                        }
+                    }
+                }
                 CommandHandler.markAiUserReplied(dialogId);
                 CommandHandler.addLog("🤖 Отправляю запрос к AI...");
                 final MessageObject triggerMsg = msg;
                 final long fDialogId = dialogId;
-                final String finalText = text != null ? text : "";
+                final String finalText = (fileTextContent != null ? fileTextContent + "\n\n" : "") + (text != null ? text : "");
                 if (curRole == 4) {
                     long fromId4 = 0;
                     String senderName4 = "Unknown";
