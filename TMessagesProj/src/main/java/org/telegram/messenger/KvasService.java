@@ -42,6 +42,7 @@ public class KvasService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createChannel();
         scheduleNoonAlarm(this);
+        scheduleNewsAlarm(this);
         acquireWakeLock();
         startKeepAlive();
         startChannelPosts();
@@ -144,6 +145,25 @@ public class KvasService extends Service {
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         if (keepAliveHandler != null) keepAliveHandler.removeCallbacksAndMessages(null);
         if (channelPostHandler != null) channelPostHandler.removeCallbacksAndMessages(null);
+    }
+
+    private void scheduleNewsAlarm(Context ctx) {
+        android.app.AlarmManager am = (android.app.AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        android.content.Intent i = new android.content.Intent(ctx, KvasAlarmReceiver.class);
+        i.putExtra("alarm_type", "news");
+        android.app.PendingIntent pi = android.app.PendingIntent.getBroadcast(ctx, 1300, i,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 10);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
+            cal.add(java.util.Calendar.DAY_OF_YEAR, 1);
+        }
+        am.setRepeating(android.app.AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(),
+            android.app.AlarmManager.INTERVAL_DAY, pi);
     }
 
     private void scheduleNoonAlarm(Context ctx) {

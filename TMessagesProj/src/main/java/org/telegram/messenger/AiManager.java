@@ -613,6 +613,37 @@ Use [SEND:] when someone asks you to send a message or post something anywhere, 
         prefs.edit().putString(KEY_QUOTE_DATE + dialogId, today).apply();
     }
 
+    public static void postDailyNews(android.content.Context context) {
+        int account = org.telegram.messenger.UserConfig.selectedAccount;
+        org.telegram.messenger.MessagesController.getInstance(account).getUserNameResolver().resolve("KvasAi_api", peerId -> {
+            if (peerId == null) {
+                org.telegram.messenger.CommandHandler.addLog("❌ postDailyNews: канал не найден");
+                return;
+            }
+            boolean aiTopic = Math.random() < 0.8;
+            String prompt = aiTopic
+                ? "[SEARCH:новости искусственный интеллект сегодня] Найди самые актуальные новости про AI за сегодня и напиши короткий пост для канала о самых важных из них. Касой, без воды, как для своего телеграм-канала."
+                : "[SEARCH:главные мировые новости сегодня] Найди самые актуальные мировые новости за сегодня и напиши короткий пост для канала о самых важных из них. Касой, без воды, как для своего телеграм-канала.";
+            final long finalPeerId = peerId;
+            ask(context, finalPeerId, prompt, new AiCallback() {
+                @Override
+                public void onResult(String result) {
+                    android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+                    h.post(() -> {
+                        org.telegram.messenger.SendMessagesHelper.SendMessageParams p = org.telegram.messenger.SendMessagesHelper.SendMessageParams.of(
+                            result, finalPeerId, null, null, null, false, null, null, null, false, 0, 0, null, false);
+                        org.telegram.messenger.SendMessagesHelper.getInstance(account).sendMessage(p);
+                    });
+                    org.telegram.messenger.CommandHandler.addLog("✅ postDailyNews отправлено");
+                }
+                @Override
+                public void onError(String error) {
+                    org.telegram.messenger.CommandHandler.addLog("❌ postDailyNews error: " + error);
+                }
+            });
+        });
+    }
+
     public static void generateQuote(android.content.Context context, long dialogId) {
         String quotePrompt = "Generate one short quote that sounds serious and deep but is actually a tautology, broken logic, or obvious nonsense. Examples: 'One mistake and you made a mistake', 'If you were wronged unfairly - go and deserve it'. Reply in Russian. Just the quote itself, no author, no explanation, no quote marks.";
         ask(context, dialogId, quotePrompt, new AiCallback() {
