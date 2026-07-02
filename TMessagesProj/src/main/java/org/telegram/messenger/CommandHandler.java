@@ -558,6 +558,39 @@ public class CommandHandler {
             return;
         }
 
+        // [FORWARD_NEXT:target] — target может быть "me" или @username
+        java.util.regex.Matcher fwdNextMatcher = java.util.regex.Pattern.compile("\\[FORWARD_NEXT:([^\\]]+)\\]").matcher(result);
+        if (fwdNextMatcher.find()) {
+            String fwdNextTarget = fwdNextMatcher.group(1).trim();
+            result = fwdNextMatcher.replaceAll("").trim();
+            addLog("📤 FORWARD_NEXT тег найден: " + fwdNextTarget);
+            final long fDlgFwdNext = dialogId;
+            final MessageObject fMsgFwdNext = replyToMsg;
+            final int fAccFwdNext = account;
+            long senderIdFwdNext = 0;
+            if (replyToMsg != null && replyToMsg.messageOwner != null && replyToMsg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
+                senderIdFwdNext = ((TLRPC.TL_peerUser) replyToMsg.messageOwner.from_id).user_id;
+            }
+            final long finalSenderIdFwdNext = senderIdFwdNext;
+            if (fwdNextTarget.equalsIgnoreCase("me")) {
+                setForwardWait(dialogId, finalSenderIdFwdNext, null);
+                AndroidUtilities.runOnUIThread(() -> sendLocal(fDlgFwdNext, "Окей, жду твоё следующее сообщение — перешлю тебе"));
+            } else {
+                String fwdUsernameNext = fwdNextTarget.replaceAll("^@", "");
+                final String finalFwdUsernameNext = fwdUsernameNext;
+                AndroidUtilities.runOnUIThread(() -> {
+                    MessagesController.getInstance(fAccFwdNext).getUserNameResolver().resolve(finalFwdUsernameNext, (peerId) -> {
+                        if (peerId == null) {
+                            sendLocal(fDlgFwdNext, "❌ Не нашёл пользователя @" + finalFwdUsernameNext);
+                            return;
+                        }
+                        setForwardWait(fDlgFwdNext, finalSenderIdFwdNext, finalFwdUsernameNext);
+                        AndroidUtilities.runOnUIThread(() -> sendLocal(fDlgFwdNext, "Окей, жду твоё следующее сообщение — перешлю @" + finalFwdUsernameNext));
+                    });
+                });
+            }
+        }
+
         // [FILE:filename.ext:content]
         java.util.regex.Matcher fileMatcher = java.util.regex.Pattern.compile("\\[FILE:([^:]+):(.+?)\\]$", java.util.regex.Pattern.DOTALL).matcher(result);
         if (fileMatcher.find()) {

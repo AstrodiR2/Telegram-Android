@@ -21548,39 +21548,6 @@ public class MessagesController extends BaseController implements NotificationCe
                         }
                     }
                 }
-                // Триггер "квас перешли моё следующее @username"
-                if (textLow.contains("квас перешли") || textLow.contains("квас перекинь")) {
-                    java.util.regex.Matcher fwdM = java.util.regex.Pattern.compile("@([\\w]+)").matcher(text);
-                    String fwdTarget = null;
-                    while (fwdM.find()) {
-                        String u = fwdM.group(1);
-                        if (!u.equalsIgnoreCase("Oposut")) { fwdTarget = u; break; }
-                    }
-                    final long fDlgFwdT = dialogId;
-                    final MessageObject fMsgFwdT = msg;
-                    if (fwdTarget == null) {
-                        final String ft = fwdTarget;
-                        AndroidUtilities.runOnUIThread(() -> {
-                            SendMessagesHelper.getInstance(currentAccount).sendMessage(
-                                SendMessagesHelper.SendMessageParams.of("Кому пересылать? Укажи @username",
-                                fDlgFwdT, fMsgFwdT, null, null, false, null, null, null, false, 0, 0, null, false));
-                        });
-                        continue;
-                    }
-                    long fromIdFwdT = 0;
-                    if (msg.messageOwner.from_id instanceof TLRPC.TL_peerUser) {
-                        fromIdFwdT = ((TLRPC.TL_peerUser) msg.messageOwner.from_id).user_id;
-                    }
-                    CommandHandler.setForwardWait(dialogId, fromIdFwdT, fwdTarget);
-                    final String finalFwdTarget = fwdTarget;
-                    AndroidUtilities.runOnUIThread(() -> {
-                        SendMessagesHelper.getInstance(currentAccount).sendMessage(
-                            SendMessagesHelper.SendMessageParams.of("Окей, жду твоё следующее сообщение — перешлю @" + finalFwdTarget,
-                            fDlgFwdT, fMsgFwdT, null, null, false, null, null, null, false, 0, 0, null, false));
-                    });
-                    continue;
-                }
-
                 // Триггер "угадай кто написал"
                 if (text != null && (textLow.contains("квас угадай") || textLow.contains("угадай кто написал"))) {
                     if (CommandHandler.isGuessGameActive(dialogId)) {
